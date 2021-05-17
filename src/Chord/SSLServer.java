@@ -54,12 +54,12 @@ public class SSLServer {
 
                 byte[] request = new byte[256];
 
-                in.read(request);
+                in.read(request, 0, request.length);
                 System.out.println("SSLServer: " + new String(request));
                 
                 String response = serverDNS.handleRequest((new String(request)).split(" "));
 
-                out.write(response.getBytes());
+                out.write(response.getBytes(), 0, response.getBytes().length);
 
                 System.out.println("SSLServer: " + new String(response));
             }    

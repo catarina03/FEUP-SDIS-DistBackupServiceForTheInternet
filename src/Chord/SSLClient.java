@@ -49,13 +49,13 @@ public class SSLClient {
 
             OutputStream out = s.getOutputStream();
 
-            out.write(requestArgs.getBytes());
+            out.write(requestArgs.getBytes(), 0, requestArgs.getBytes().length);
 
             InputStream in = s.getInputStream();
             
-            byte[] response = new byte[256];
-            in.read(response, 0, in.available());
-            //in.read(response);
+            byte[] response = new byte[10000];
+            in.read(response, 0, response.length);
+
             System.out.println("SSLClient: " + new String(response));
 
         }  
