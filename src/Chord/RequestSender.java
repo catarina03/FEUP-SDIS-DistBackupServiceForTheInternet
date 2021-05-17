@@ -6,59 +6,50 @@ import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 
-public class SendRequestTask implements Runnable{
+public class RequestSender{
     int portNumber;
     String address;
     byte[] requestData;
     String[] cipherSuites;
 
-    public SendRequestTask(String addr, String port, String request, String[] suites){
+    public RequestSender(String addr, String port, String request, String[] suites){
         requestData = request.getBytes();
         address = addr;
         portNumber = getPort(port);
         cipherSuites = suites;
     }
 
-    @Override
-    public void run() {
+    public byte[] send() throws IOException{
         setSystemProperties();
+  
 
-        
-        try {  
+        SSLSocketFactory ssf = (SSLSocketFactory) SSLSocketFactory.getDefault();  
+        SSLSocket s = (SSLSocket) ssf.createSocket(address, portNumber);  
 
-            SSLSocketFactory ssf = (SSLSocketFactory) SSLSocketFactory.getDefault();  
-            SSLSocket s = (SSLSocket) ssf.createSocket(address, portNumber);  
+        if(cipherSuites.length == 0){
+            System.out.println("Sender Using Default Cipher Suites");
 
-            if(cipherSuites.length == 0){
-                System.out.println("Sender Using Default Cipher Suites");
-
-                s.setSSLParameters( new SSLParameters(ssf.getDefaultCipherSuites()));
-            }
-            else{
-                
-                s.setSSLParameters(new SSLParameters(cipherSuites));
-            }
-
-            s.startHandshake();
-
-            OutputStream out = s.getOutputStream();
-
-            out.write(requestData, 0, requestData.length);
-            System.out.println("SSLClient sent: " + new String(requestData));
-            InputStream in = s.getInputStream();
+            s.setSSLParameters( new SSLParameters(ssf.getDefaultCipherSuites()));
+        }
+        else{
             
-            byte[] response = new byte[10000];
-            in.read(response, 0, response.length);
+            s.setSSLParameters(new SSLParameters(cipherSuites));
+        }
 
-            System.out.println("SSLClient received: " + new String(response));
+        s.startHandshake();
 
-        }  
-        catch( IOException e) {  
-            System.out.println("Server - Failed to create SSLSocket");  
-            e.getMessage();  
-            return;  
-        }       
+        OutputStream out = s.getOutputStream();
+
+        out.write(requestData, 0, requestData.length);
+        System.out.println("Request sent: " + new String(requestData));
+        InputStream in = s.getInputStream();
         
+        byte[] response = new byte[10000];
+        in.read(response, 0, response.length);
+
+        System.out.println("Response received: " + new String(response));
+
+        return response;
     }
 
     private static void setSystemProperties(){

@@ -42,18 +42,7 @@ public class Listener implements Runnable{
             while(true){
                 SSLSocket c = (SSLSocket)s.accept();
 
-                InputStream in = c.getInputStream();
-
-                byte[] request = new byte[256];
-
-                in.read(request, 0, request.length);
-                System.out.println("SSLServer received: " + new String(request));
-
-                OutputStream out = c.getOutputStream();
-                String response = "FUC YEAH";
-                out.write(response.getBytes(), 0, response.getBytes().length);
-                
-                System.out.println("SSLServer sented: " + response);
+                ChordPeer.getThreadPool().execute(new ReceiveRequestTask(c));
             }    
 
         }  
