@@ -11,12 +11,14 @@ public class RequestSender{
     String address;
     byte[] requestData;
     String[] cipherSuites;
+    Boolean wait;
 
-    public RequestSender(String addr, String port, String request, String[] suites){
+    public RequestSender(String addr, String port, String request, String[] suites, Boolean waitResponse){
         requestData = request.getBytes();
         address = addr;
         portNumber = getPort(port);
         cipherSuites = suites;
+        wait = waitResponse;
     }
 
     public byte[] send() throws IOException{
@@ -42,6 +44,12 @@ public class RequestSender{
 
         out.write(requestData, 0, requestData.length);
         System.out.println("Request sent: " + new String(requestData));
+
+        if(!wait){
+            System.out.println("Response not needed.");
+            return null;
+        }
+
         InputStream in = s.getInputStream();
         
         byte[] response = new byte[10000];

@@ -26,6 +26,11 @@ public class ReceiveRequestTask implements Runnable{
 
             String response = request.resolve();
 
+            if(response.equals("")){
+                System.out.println("No message to be sent.");
+                return;
+            }
+
             OutputStream out = socket.getOutputStream();
             out.write(response.getBytes(), 0, response.getBytes().length);
             

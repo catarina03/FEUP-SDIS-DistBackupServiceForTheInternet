@@ -103,8 +103,8 @@ public class ChordPeer  implements PeerClientTest{
 
         StabilizeTask stabilize = new StabilizeTask(obj);
 
-        threadPool.schedule(stabilize, 5, TimeUnit.SECONDS);
 
+        threadPool.scheduleWithFixedDelay(stabilize, 5, 5, TimeUnit.SECONDS);
 
         // // Save the object in the rmi
         // try {
@@ -120,7 +120,7 @@ public class ChordPeer  implements PeerClientTest{
    
     @Override
     public String testCommunication(String port) throws Exception {
-        RequestSender requestSender = new RequestSender(address, port, "WHATS UP", new String[0]);
+        RequestSender requestSender = new RequestSender(address, port, "WHATS UP", new String[0], true);
 
    
         return new String(requestSender.send());
@@ -135,7 +135,7 @@ public class ChordPeer  implements PeerClientTest{
     private static void joinChord(String addr, String port) throws IOException{
         String message = "1.0 FINDSUCCESSOR " + portNumber +  " \r\n\r\n";
 
-        RequestSender requestSender = new RequestSender(addr, port, message, cipherSuites);
+        RequestSender requestSender = new RequestSender(addr, port, message, cipherSuites, true);
 
         Message response = new Message(requestSender.send());
 
@@ -155,7 +155,7 @@ public class ChordPeer  implements PeerClientTest{
         ChordNode closestNode = closestPrecedingNode(nodeID);
         String requestMessage = "1.0 FINDSUCCESSOR " + nodeID + " \r\n\r\n";
 
-        RequestSender request = new RequestSender(closestNode.getAddress(),"" + closestNode.getPortNumber(), requestMessage, cipherSuites);
+        RequestSender request = new RequestSender(closestNode.getAddress(),"" + closestNode.getPortNumber(), requestMessage, cipherSuites, true);
 
         return new String(request.send());
 

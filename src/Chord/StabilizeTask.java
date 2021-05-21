@@ -12,7 +12,7 @@ public class StabilizeTask implements Runnable{
         System.out.println("Stabilizing....");
         String requestPredecessorMessage = "1.0 GETPREDECESSOR " + ChordPeer.getSuccessor().getId() + " \r\n\r\n";
         
-        RequestSender requestPredecessor = new RequestSender(ChordPeer.getSuccessor().getAddress(), "" + ChordPeer.getSuccessor().getPortNumber(), requestPredecessorMessage, ChordPeer.getCipherSuites());
+        RequestSender requestPredecessor = new RequestSender(ChordPeer.getSuccessor().getAddress(), "" + ChordPeer.getSuccessor().getPortNumber(), requestPredecessorMessage, ChordPeer.getCipherSuites(), true);
 
         try {
             Message predecessorMessage = new Message(requestPredecessor.send());
@@ -27,7 +27,7 @@ public class StabilizeTask implements Runnable{
                 }     
             }
 
-            RequestSender requestNotify = new RequestSender(ChordPeer.getSuccessor().getAddress(), "" + ChordPeer.getSuccessor().getPortNumber(), notifyMessage, ChordPeer.getCipherSuites());
+            RequestSender requestNotify = new RequestSender(ChordPeer.getSuccessor().getAddress(), "" + ChordPeer.getSuccessor().getPortNumber(), notifyMessage, ChordPeer.getCipherSuites(), false);
 
             requestNotify.send();
            
