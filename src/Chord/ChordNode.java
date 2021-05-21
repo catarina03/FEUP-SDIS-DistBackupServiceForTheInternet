@@ -2,10 +2,10 @@ public class ChordNode {
     private String address;
     private int portNumber, id;
 
-    public ChordNode(String addr, String port){
+    public ChordNode(String nodeID, String addr, String port){
         address = addr;
         portNumber = Integer.parseInt(port);
-        id = portNumber;
+        id = Integer.parseInt(nodeID);
     }
 
     public String getAddress() {

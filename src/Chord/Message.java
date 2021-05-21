@@ -11,10 +11,18 @@ public class Message{
         parse();
     }
 
+    public String[] getHeader() {
+        return header;
+    }
+
+    public byte[] getBody() {
+        return body;
+    }
+
     /**
      * Parses the message received in the constructor.
      */
-    public void parse(){
+    private void parse(){
         int headerSize;
 
         for(headerSize = 0; headerSize < this.message.length - 4; headerSize++){
@@ -46,17 +54,23 @@ public class Message{
         switch (header[1].trim()) {
             case "FINDSUCCESSOR":
                 try {
-                    return ChordPeer.findSucessor(Integer.parseInt(header[2].trim()));
-                } catch (NumberFormatException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                } catch (IOException e) {
+                    return ChordPeer.findSuccessor(Integer.parseInt(header[2].trim()));
+                } catch (Exception e) {
                     // TODO Auto-generated catch block
                     e.printStackTrace();
                 }
             case "SUCCESSOR":
-                ChordNode successor = new ChordNode(header[4].trim(), header[3].trim());
+                ChordNode successor = new ChordNode(header[2].trim(), header[3].trim(), header[4].trim());
                 ChordPeer.setSuccessor(successor);
+                return "";
+            case "GETPREDECESSOR":
+                if(ChordPeer.getPredecessor() == null){
+                    return "1.0 PREDECESSOR NULL"; 
+                }
+                return "1.0 PREDECESSOR " + ChordPeer.getPredecessor().getId() + " " + ChordPeer.getPredecessor().getAddress() + " " + ChordPeer.getPredecessor().getPortNumber() + " " + " \r\n\r\n";
+
+            case "NOTIFY":
+                ChordPeer.updatePredecessor(header[2].trim(), header[3].trim(), header[4].trim());
                 return "";
             default:
                 break;

@@ -7,6 +7,7 @@ import java.security.MessageDigest;
 import java.util.ArrayList;
 
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 
 public class ChordPeer  implements PeerClientTest{
@@ -66,6 +67,10 @@ public class ChordPeer  implements PeerClientTest{
         ChordPeer.successor = successor;
     }
 
+    public static void setPredecessor(ChordNode predecessor) {
+        ChordPeer.predecessor = predecessor;
+    }
+
     /**
      * 
      * @param args - Array containing the following information:
@@ -96,7 +101,10 @@ public class ChordPeer  implements PeerClientTest{
             joinChord(args[4], args[5]);
         }
 
-        
+        StabilizeTask stabilize = new StabilizeTask(obj);
+
+        threadPool.schedule(stabilize, 5, TimeUnit.SECONDS);
+
 
         // // Save the object in the rmi
         // try {
@@ -120,7 +128,7 @@ public class ChordPeer  implements PeerClientTest{
 
     private static void createChord(){
         predecessor = null;
-        successor = new ChordNode(address, portNumber);
+        successor = new ChordNode(portNumber, address, portNumber);
         System.out.println("Chord Initiated");
     }
 
@@ -134,43 +142,75 @@ public class ChordPeer  implements PeerClientTest{
         response.resolve();
 
         successor.printInfo();
-        
         System.out.println("Joined Chord");
     }
 
-    public static String findSucessor(int nodeID) throws IOException{
+    public static String findSuccessor(int nodeID) throws IOException{
         String message = "1.0 SUCCESSOR ";
 
-        // TODO: Verificar o que é para fazer quando só existe um node no chord
-        if(ChordPeer.getId() == ChordPeer.getSuccessor().getId()){
-            if(nodeID < ChordPeer.getId()){
-                return message + ChordPeer.getId() + " " + ChordPeer.getPortNumber() + " " + ChordPeer.getAddress() + " \r\n\r\n";
-            }
+        if(dealWithInterval(ChordPeer.getId(), false, ChordPeer.getSuccessor().getId(), true, nodeID)){
+            return message + ChordPeer.getSuccessor().getId() + " " + ChordPeer.getSuccessor().getAddress() + " " + ChordPeer.getSuccessor().getPortNumber() + " \r\n\r\n";
         }
 
+        ChordNode closestNode = closestPrecedingNode(nodeID);
+        String requestMessage = "1.0 FINDSUCCESSOR " + nodeID + " \r\n\r\n";
 
-        if(nodeID > ChordPeer.getId() && nodeID < ChordPeer.getSuccessor().getId()){
-            return message + ChordPeer.getSuccessor().getId() + " " + ChordPeer.getSuccessor().getPortNumber() + " " + ChordPeer.getSuccessor().getAddress() + " \r\n\r\n";
-        }
-        else{
-            ChordNode closestNode = closestPrecedingNode(nodeID);
-            String requestMessage = "1.0 FINDSUCCESSOR " + nodeID + " \r\n\r\n";
+        RequestSender request = new RequestSender(closestNode.getAddress(),"" + closestNode.getPortNumber(), requestMessage, cipherSuites);
 
-            RequestSender request = new RequestSender(closestNode.getAddress(),"" + closestNode.getPortNumber(), requestMessage, cipherSuites);
+        return new String(request.send());
 
-            return new String(request.send());
-        }
     }
 
-
-    public static ChordNode closestPrecedingNode(int id){
+    public static ChordNode closestPrecedingNode(int nodeID){
         for(int i = fingerTable.size() - 1; i >=0; i--){
-            if(fingerTable.get(i).getId() < id){
+            if(dealWithInterval(id, false, nodeID, false, fingerTable.get(i).getId())){
                 return fingerTable.get(i);
             }
         }
 
-        return new ChordNode(address, portNumber);
+        return new ChordNode(portNumber, address, portNumber);
+    }
+
+    public static void updatePredecessor(String nodeID, String addr, String port){
+        int predecessorID = Integer.parseInt(nodeID);
+
+        if(predecessor == null || dealWithInterval(predecessor.getId(), false, id, false, predecessorID)){
+            predecessor = new ChordNode(nodeID, addr, port);
+        }
+
+        System.out.println("Predecessor Updated.");
+        System.out.println("Current Predecessor: " + predecessor.getId());
+        System.out.println("Current Successor: " + successor.getId());
+    }
+
+    public static Boolean dealWithInterval(int leftEndPoint, Boolean containsLeft, int rightEndPoint, Boolean containsRight, int value){
+        if(leftEndPoint >= rightEndPoint){
+            if(containsLeft){
+                if(containsRight){
+                    return value >= leftEndPoint || value <= rightEndPoint;
+                }
+
+                return value >= leftEndPoint || value < rightEndPoint;
+            }
+            else if(containsRight){
+                return value > leftEndPoint || value <= rightEndPoint;
+            }
+
+            return value > leftEndPoint || value < rightEndPoint;
+        }
+
+    if(containsLeft){
+        if(containsRight){
+            return value >= leftEndPoint && value <= rightEndPoint;
+        }
+
+        return value >= leftEndPoint && value < rightEndPoint;
+    }
+    else if(containsRight){
+        return value > leftEndPoint && value <= rightEndPoint;
+    }
+
+    return value > leftEndPoint && value < rightEndPoint;
     }
 
 }
