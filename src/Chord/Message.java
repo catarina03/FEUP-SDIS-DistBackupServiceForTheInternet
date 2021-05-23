@@ -72,6 +72,8 @@ public class Message{
             case "NOTIFY":
                 ChordPeer.updatePredecessor(header[2].trim(), header[3].trim(), header[4].trim());
                 return "";
+            case "CHECKCONNECTION":
+                return "1.0 ALIVE";
             default:
                 break;
             

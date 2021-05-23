@@ -4,8 +4,9 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.security.MessageDigest;
-import java.util.ArrayList;
-
+import java.util.Iterator;
+import java.util.Map;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -17,7 +18,7 @@ public class ChordPeer  implements PeerClientTest{
     private static ScheduledThreadPoolExecutor threadPool;
     static String[] cipherSuites;
     private static ChordNode predecessor, successor;
-    private static ArrayList<ChordNode> fingerTable;
+    private static ConcurrentSkipListMap<Integer, ChordNode> fingerTable;
 
     public ChordPeer(String idNumber, String addr, String port, String[] Suites){
         String encondedID = sha1Encode(addr + port);
@@ -26,7 +27,7 @@ public class ChordPeer  implements PeerClientTest{
         address = addr;
         portNumber = port;
         threadPool = new ScheduledThreadPoolExecutor(100);
-        fingerTable = new ArrayList<>();
+        fingerTable = new ConcurrentSkipListMap<>();
     }
 
     public static String getAddress() {
@@ -37,7 +38,7 @@ public class ChordPeer  implements PeerClientTest{
         return cipherSuites;
     }
 
-    public static ArrayList<ChordNode> getFingerTable() {
+    public static ConcurrentSkipListMap<Integer, ChordNode> getFingerTable() {
         return fingerTable;
     }
 
@@ -75,13 +76,7 @@ public class ChordPeer  implements PeerClientTest{
 
     public static void setSuccessor(ChordNode successor) {
         ChordPeer.successor = successor;
-
-        if(ChordPeer.fingerTable.size() > 1){
-            ChordPeer.fingerTable.set(0, successor);
-        }
-        else{
-            ChordPeer.fingerTable.add(successor);
-        }
+        ChordPeer.fingerTable.put(1, successor);
     }
 
     public static void setPredecessor(ChordNode predecessor) {
@@ -89,7 +84,7 @@ public class ChordPeer  implements PeerClientTest{
     }
 
     public static void setFingerAtIndex(int index, ChordNode fingerNode){
-        ChordPeer.fingerTable.set(index, fingerNode);
+        ChordPeer.fingerTable.put(index, fingerNode);
     }
 
     /**
@@ -103,7 +98,7 @@ public class ChordPeer  implements PeerClientTest{
      * args[5] --> Known Chord Peer port;
      * @throws IOException
      */
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws Exception {
         // Create Thread Pool
         threadPool = new ScheduledThreadPoolExecutor(100);
 
@@ -122,11 +117,10 @@ public class ChordPeer  implements PeerClientTest{
             joinChord(args[4], args[5]);
         }
 
-        StabilizeTask stabilize = new StabilizeTask(obj);
 
-
-        threadPool.scheduleWithFixedDelay(stabilize, 5, 5, TimeUnit.SECONDS);
-        threadPool.scheduleWithFixedDelay(new FixFingersTask(), 25, 5, TimeUnit.SECONDS);
+        threadPool.scheduleWithFixedDelay(new StabilizeTask(), 5, 10, TimeUnit.SECONDS);
+        threadPool.scheduleWithFixedDelay(new FixFingersTask(), 20, 20, TimeUnit.SECONDS);
+        threadPool.scheduleWithFixedDelay(new CheckPredecessorTask(), 5, 20, TimeUnit.SECONDS);
 
         // // Save the object in the rmi
         // try {
@@ -151,11 +145,11 @@ public class ChordPeer  implements PeerClientTest{
     private static void createChord(){
         predecessor = null;
         successor = new ChordNode(id, address, portNumber);
-        fingerTable.add(successor);
+        fingerTable.put(1 , successor);
         System.out.println("Chord Initiated");
     }
 
-    private static void joinChord(String addr, String port) throws IOException{
+    private static void joinChord(String addr, String port) throws Exception{
         String message = "1.0 FINDSUCCESSOR " + id +  " \r\n\r\n";
 
         RequestSender requestSender = new RequestSender(addr, port, message, cipherSuites, true);
@@ -168,7 +162,7 @@ public class ChordPeer  implements PeerClientTest{
         System.out.println("Joined Chord");
     }
 
-    public static String findSuccessor(int nodeID) throws IOException{
+    public static String findSuccessor(int nodeID) throws Exception{
         String message = "1.0 SUCCESSOR ";
 
         if(dealWithInterval(ChordPeer.getId(), false, ChordPeer.getSuccessor().getId(), true, nodeID)){
@@ -186,9 +180,10 @@ public class ChordPeer  implements PeerClientTest{
 
     public static ChordNode closestPrecedingNode(int nodeID){
 
-        for(int i = fingerTable.size() - 1; i >=0; i--){
-            if(dealWithInterval(id, false, nodeID, false, fingerTable.get(i).getId())){
-                return fingerTable.get(i);
+        for(Iterator<ChordNode> e = fingerTable.values().iterator(); e.hasNext();){
+            ChordNode node = e.next();
+            if(dealWithInterval(id, false, nodeID, false, node.getId())){
+                return node;
             }
         }
 
@@ -205,6 +200,42 @@ public class ChordPeer  implements PeerClientTest{
         System.out.println("Predecessor Updated.");
         System.out.println("Current Predecessor: " + predecessor.getId());
         System.out.println("Current Successor: " + successor.getId());
+    }
+
+    public static void dealWithNodeFailure(String nodeAddres, int nodePort){
+        System.out.println("NODE FAILED: " + nodeAddres + " and port " + nodePort);
+
+        Iterator<Map.Entry<Integer, ChordNode>> iter = fingerTable.entrySet().iterator();
+
+        while(iter.hasNext()){
+            Map.Entry<Integer, ChordNode> entry = iter.next();
+            
+            if(entry.getValue().getAddress().equals(nodeAddres) && entry.getValue().getPortNumber() == nodePort){
+                fingerTable.remove(entry.getKey());
+            }
+        }
+
+        if(ChordPeer.fingerTable.isEmpty()){
+            System.out.println("EMPTY");
+            ChordPeer.setSuccessor(new ChordNode(ChordPeer.id, ChordPeer.address, ChordPeer.portNumber));
+        }
+        else{
+            System.out.println("NOT EMPTY");
+            ChordPeer.successor = fingerTable.firstEntry().getValue();
+            System.out.println("Successor: " + successor.getId());
+        }
+
+        ChordPeer.printFingerTable();
+    }
+
+    public static void printFingerTable(){
+        Iterator<Map.Entry<Integer, ChordNode>> iter = ChordPeer.fingerTable.entrySet().iterator();
+        System.out.println("FINGER TABLE:");
+        while(iter.hasNext()){
+            Map.Entry<Integer, ChordNode> entry = iter.next();
+            System.out.println("Finger nr "  + entry.getKey() + " :");
+            entry.getValue().printInfo();
+        }
     }
 
     public static Boolean dealWithInterval(int leftEndPoint, Boolean containsLeft, int rightEndPoint, Boolean containsRight, int value){
@@ -240,7 +271,7 @@ public class ChordPeer  implements PeerClientTest{
 
     private String sha1Encode(final String stringToEncode) {
         try{
-            final MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            final MessageDigest digest = MessageDigest.getInstance("SHA-1");
             final byte[] hash = digest.digest(stringToEncode.getBytes("UTF-8"));
             final StringBuilder hexString = new StringBuilder();
 

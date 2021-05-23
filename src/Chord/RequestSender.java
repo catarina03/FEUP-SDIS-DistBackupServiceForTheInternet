@@ -21,12 +21,14 @@ public class RequestSender{
         wait = waitResponse;
     }
 
-    public byte[] send() throws IOException{
+    public byte[] send() throws Exception{
         setSystemProperties();
   
 
         SSLSocketFactory ssf = (SSLSocketFactory) SSLSocketFactory.getDefault();  
-        SSLSocket s = (SSLSocket) ssf.createSocket(address, portNumber);  
+        SSLSocket s;
+
+        s = (SSLSocket) ssf.createSocket(address, portNumber);
 
         if(cipherSuites.length == 0){
             System.out.println("Sender Using Default Cipher Suites");
@@ -58,6 +60,7 @@ public class RequestSender{
         System.out.println("Response received: " + new String(response));
 
         return response;
+
     }
 
     private static void setSystemProperties(){

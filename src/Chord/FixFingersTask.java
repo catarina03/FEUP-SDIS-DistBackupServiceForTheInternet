@@ -7,35 +7,21 @@ public class FixFingersTask implements Runnable{
 
     @Override
     public void run() {
-        int next = ChordPeer.getNextFinger() + 1;
 
-        if(next > 8){
-            next = 1;
-            System.out.println("FINGER TABLE.");
-            for(int i = 1; i <= 8; i++){
-                System.out.println("Finger nr " + (ChordPeer.getId() + Math.pow(2, i - 1)) % Math.pow(2, 8) + " : ");
-                ChordPeer.getFingerTable().get(i).printInfo();
+        for(int i = 1; i <= 8; i++){
+            try {
+                int fingerStart = (int) ((ChordPeer.getId() + Math.pow(2, i - 1)) % Math.pow(2, 8));
+                String[] successorResponse = ChordPeer.findSuccessor(fingerStart).split(" ");
+    
+                ChordNode successor = new ChordNode(Integer.parseInt(successorResponse[2].trim()), successorResponse[3].trim(), successorResponse[4].trim());
+    
+                ChordPeer.setFingerAtIndex((int) (Math.pow(2, i - 1)), successor);
+            } catch (Exception e) {
+                System.out.println("Node Failed While Trying to Search for a Successor");
             }
         }
 
-        try {
-            String[] successorResponse = ChordPeer.findSuccessor((int) ((ChordPeer.getId() + Math.pow(2, next - 1)) % Math.pow(2, 8))).split(" ");
-
-            ChordNode successor = new ChordNode(Integer.parseInt(successorResponse[2].trim()), successorResponse[3].trim(), successorResponse[4].trim());
-
-            if(ChordPeer.getFingerTable().size() > next){
-                ChordPeer.setFingerAtIndex(next, successor);
-            }
-            else{
-                ChordPeer.getFingerTable().add(successor);
-            }
-
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-        
-        ChordPeer.setNextFinger(next);
+        ChordPeer.printFingerTable();
     }
     
 }
