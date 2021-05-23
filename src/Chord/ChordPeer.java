@@ -162,7 +162,7 @@ public class ChordPeer  implements PeerClientTest{
         System.out.println("Joined Chord");
     }
 
-    public static String findSuccessor(int nodeID) throws Exception{
+    public static String findSuccessor(int nodeID){
         String message = "1.0 SUCCESSOR ";
 
         if(dealWithInterval(ChordPeer.getId(), false, ChordPeer.getSuccessor().getId(), true, nodeID)){
@@ -174,7 +174,13 @@ public class ChordPeer  implements PeerClientTest{
         System.out.println(("Asking node " + closestNode.getId() + " for successor"));
         RequestSender request = new RequestSender(closestNode.getAddress(),"" + closestNode.getPortNumber(), requestMessage, cipherSuites, true);
 
-        return new String(request.send());
+        try {
+            return new String(request.send());
+        } catch (Exception e) {
+            dealWithNodeFailure(closestNode.getAddress(), closestNode.getPortNumber());
+
+            return findSuccessor(nodeID);
+        }
 
     }
 

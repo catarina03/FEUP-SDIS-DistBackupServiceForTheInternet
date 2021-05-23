@@ -53,12 +53,7 @@ public class Message{
         // Parse the operation to be executed
         switch (header[1].trim()) {
             case "FINDSUCCESSOR":
-                try {
                     return ChordPeer.findSuccessor(Integer.parseInt(header[2].trim()));
-                } catch (Exception e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                }
             case "SUCCESSOR":
                 ChordNode successor = new ChordNode(Integer.parseInt(header[2].trim()), header[3].trim(), header[4].trim());
                 ChordPeer.setSuccessor(successor);
