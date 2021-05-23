@@ -12,7 +12,7 @@ import java.util.concurrent.TimeUnit;
 
 public class ChordPeer  implements PeerClientTest{
     static String address, portNumber;
-    static int id;
+    static int id, nextFinger = 0;
     private static Listener listener;
     private static ScheduledThreadPoolExecutor threadPool;
     static String[] cipherSuites;
@@ -20,7 +20,9 @@ public class ChordPeer  implements PeerClientTest{
     private static ArrayList<ChordNode> fingerTable;
 
     public ChordPeer(String idNumber, String addr, String port, String[] Suites){
-        id = Integer.parseInt(port);
+        String encondedID = sha1Encode(addr + port);
+        id = Integer.parseInt(encondedID.substring(encondedID.length() - 2), 16);
+        System.out.println("ID: " + id);
         address = addr;
         portNumber = port;
         threadPool = new ScheduledThreadPoolExecutor(100);
@@ -63,12 +65,31 @@ public class ChordPeer  implements PeerClientTest{
         return threadPool;
     }
 
+    public static int getNextFinger() {
+        return nextFinger;
+    }
+
+    public static void setNextFinger(int next) {
+        ChordPeer.nextFinger = next;
+    }
+
     public static void setSuccessor(ChordNode successor) {
         ChordPeer.successor = successor;
+
+        if(ChordPeer.fingerTable.size() > 1){
+            ChordPeer.fingerTable.set(0, successor);
+        }
+        else{
+            ChordPeer.fingerTable.add(successor);
+        }
     }
 
     public static void setPredecessor(ChordNode predecessor) {
         ChordPeer.predecessor = predecessor;
+    }
+
+    public static void setFingerAtIndex(int index, ChordNode fingerNode){
+        ChordPeer.fingerTable.set(index, fingerNode);
     }
 
     /**
@@ -105,6 +126,7 @@ public class ChordPeer  implements PeerClientTest{
 
 
         threadPool.scheduleWithFixedDelay(stabilize, 5, 5, TimeUnit.SECONDS);
+        threadPool.scheduleWithFixedDelay(new FixFingersTask(), 25, 5, TimeUnit.SECONDS);
 
         // // Save the object in the rmi
         // try {
@@ -128,12 +150,13 @@ public class ChordPeer  implements PeerClientTest{
 
     private static void createChord(){
         predecessor = null;
-        successor = new ChordNode(portNumber, address, portNumber);
+        successor = new ChordNode(id, address, portNumber);
+        fingerTable.add(successor);
         System.out.println("Chord Initiated");
     }
 
     private static void joinChord(String addr, String port) throws IOException{
-        String message = "1.0 FINDSUCCESSOR " + portNumber +  " \r\n\r\n";
+        String message = "1.0 FINDSUCCESSOR " + id +  " \r\n\r\n";
 
         RequestSender requestSender = new RequestSender(addr, port, message, cipherSuites, true);
 
@@ -154,7 +177,7 @@ public class ChordPeer  implements PeerClientTest{
 
         ChordNode closestNode = closestPrecedingNode(nodeID);
         String requestMessage = "1.0 FINDSUCCESSOR " + nodeID + " \r\n\r\n";
-
+        System.out.println(("Asking node " + closestNode.getId() + " for successor"));
         RequestSender request = new RequestSender(closestNode.getAddress(),"" + closestNode.getPortNumber(), requestMessage, cipherSuites, true);
 
         return new String(request.send());
@@ -162,20 +185,21 @@ public class ChordPeer  implements PeerClientTest{
     }
 
     public static ChordNode closestPrecedingNode(int nodeID){
+
         for(int i = fingerTable.size() - 1; i >=0; i--){
             if(dealWithInterval(id, false, nodeID, false, fingerTable.get(i).getId())){
                 return fingerTable.get(i);
             }
         }
 
-        return new ChordNode(portNumber, address, portNumber);
+        return new ChordNode(id, address, portNumber);
     }
 
     public static void updatePredecessor(String nodeID, String addr, String port){
         int predecessorID = Integer.parseInt(nodeID);
 
         if(predecessor == null || dealWithInterval(predecessor.getId(), false, id, false, predecessorID)){
-            predecessor = new ChordNode(nodeID, addr, port);
+            predecessor = new ChordNode(Integer.parseInt(nodeID), addr, port);
         }
 
         System.out.println("Predecessor Updated.");
@@ -184,6 +208,7 @@ public class ChordPeer  implements PeerClientTest{
     }
 
     public static Boolean dealWithInterval(int leftEndPoint, Boolean containsLeft, int rightEndPoint, Boolean containsRight, int value){
+
         if(leftEndPoint >= rightEndPoint){
             if(containsLeft){
                 if(containsRight){
@@ -211,6 +236,26 @@ public class ChordPeer  implements PeerClientTest{
     }
 
     return value > leftEndPoint && value < rightEndPoint;
+    }
+
+    private String sha1Encode(final String stringToEncode) {
+        try{
+            final MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            final byte[] hash = digest.digest(stringToEncode.getBytes("UTF-8"));
+            final StringBuilder hexString = new StringBuilder();
+
+            for (int i = 0; i < hash.length; i++) {
+                final String hex = Integer.toHexString(0xff & hash[i]);
+                if(hex.length() == 1) 
+                  hexString.append('0');
+                hexString.append(hex);
+            }
+
+            return hexString.toString();
+        } catch(Exception e){
+           e.printStackTrace();
+           return "";
+        }
     }
 
 }

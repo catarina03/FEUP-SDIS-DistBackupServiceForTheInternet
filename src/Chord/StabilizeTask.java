@@ -23,7 +23,7 @@ public class StabilizeTask implements Runnable{
                 int predecessorID = Integer.parseInt(predecessorMessage.getHeader()[2].trim());
 
                 if(ChordPeer.dealWithInterval(ChordPeer.getId(), false, ChordPeer.getSuccessor().getId(), false, predecessorID)){
-                    ChordPeer.setSuccessor(new ChordNode(predecessorMessage.getHeader()[2].trim(), predecessorMessage.getHeader()[3].trim(), predecessorMessage.getHeader()[4].trim()));
+                    ChordPeer.setSuccessor(new ChordNode(Integer.parseInt(predecessorMessage.getHeader()[2].trim()), predecessorMessage.getHeader()[3].trim(), predecessorMessage.getHeader()[4].trim()));
                 }     
             }
 

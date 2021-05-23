@@ -43,7 +43,7 @@ public class RequestSender{
         OutputStream out = s.getOutputStream();
 
         out.write(requestData, 0, requestData.length);
-        System.out.println("Request sent: " + new String(requestData));
+        System.out.println("Request sent to " + portNumber+ ": " + new String(requestData));
 
         if(!wait){
             System.out.println("Response not needed.");

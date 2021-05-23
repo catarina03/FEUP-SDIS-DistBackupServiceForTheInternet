@@ -60,7 +60,7 @@ public class Message{
                     e.printStackTrace();
                 }
             case "SUCCESSOR":
-                ChordNode successor = new ChordNode(header[2].trim(), header[3].trim(), header[4].trim());
+                ChordNode successor = new ChordNode(Integer.parseInt(header[2].trim()), header[3].trim(), header[4].trim());
                 ChordPeer.setSuccessor(successor);
                 return "";
             case "GETPREDECESSOR":
