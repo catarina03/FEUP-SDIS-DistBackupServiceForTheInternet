@@ -1,3 +1,5 @@
+package Chord; 
+
 public class FixFingersTask implements Runnable{
 
     public FixFingersTask(){        

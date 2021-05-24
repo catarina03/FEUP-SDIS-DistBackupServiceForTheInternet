@@ -1,3 +1,5 @@
+package Chord; 
+
 import java.io.IOException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
@@ -9,7 +11,7 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-public class ChordPeer  implements PeerClientTest{
+public class ChordPeer {
     static String address, portNumber;
     static int id, nextFinger = 0;
     private static Listener listener;
@@ -120,24 +122,16 @@ public class ChordPeer  implements PeerClientTest{
         threadPool.scheduleWithFixedDelay(new FixFingersTask(), 20, 20, TimeUnit.SECONDS);
         threadPool.scheduleWithFixedDelay(new CheckPredecessorTask(), 5, 20, TimeUnit.SECONDS);
 
-        // Save the object in the rmi
-        try {
-            PeerClientTest stub = (PeerClientTest) UnicastRemoteObject.exportObject(obj, 0);
-            Registry registry = LocateRegistry.getRegistry();
-            registry.bind(args[3], stub);
+        // // Save the object in the rmi
+        // try {
+        //     PeerClientTest stub = (PeerClientTest) UnicastRemoteObject.exportObject(obj, 0);
+        //     Registry registry = LocateRegistry.getRegistry();
+        //     registry.bind(args[3], stub);
 
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        // } catch (Exception e) {
+        //     e.printStackTrace();
+        // }
 
-    }
-   
-    @Override
-    public String testCommunication(String port) throws Exception {
-        RequestSender requestSender = new RequestSender(address, port, "WHATS UP", new String[0], true);
-
-   
-        return new String(requestSender.send());
     }
 
     private static void createChord(){

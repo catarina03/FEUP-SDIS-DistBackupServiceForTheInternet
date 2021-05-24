@@ -1,3 +1,5 @@
+package Chord; 
+
 import java.rmi.Remote;
 
 public interface PeerClientTest extends Remote {
