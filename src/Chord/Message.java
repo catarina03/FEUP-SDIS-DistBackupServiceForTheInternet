@@ -54,19 +54,19 @@ public class Message{
         // Parse the operation to be executed
         switch (header[1].trim()) {
             case "FINDSUCCESSOR":
-                    return ChordPeer.findSuccessor(Integer.parseInt(header[2].trim()));
+                    return ChordPeer.getChordLayer().findSuccessor(Integer.parseInt(header[2].trim()));
             case "SUCCESSOR":
                 ChordNode successor = new ChordNode(Integer.parseInt(header[2].trim()), header[3].trim(), header[4].trim());
-                ChordPeer.setSuccessor(successor);
+                ChordPeer.getChordLayer().setSuccessor(successor);
                 return "";
             case "GETPREDECESSOR":
-                if(ChordPeer.getPredecessor() == null){
+                if(ChordPeer.getChordLayer().getPredecessor() == null){
                     return "1.0 PREDECESSOR NULL"; 
                 }
-                return "1.0 PREDECESSOR " + ChordPeer.getPredecessor().getId() + " " + ChordPeer.getPredecessor().getAddress() + " " + ChordPeer.getPredecessor().getPortNumber() + " " + " \r\n\r\n";
+                return "1.0 PREDECESSOR " + ChordPeer.getChordLayer().getPredecessor().getId() + " " + ChordPeer.getChordLayer().getPredecessor().getAddress() + " " + ChordPeer.getChordLayer().getPredecessor().getPortNumber() + " " + " \r\n\r\n";
 
             case "NOTIFY":
-                ChordPeer.updatePredecessor(header[2].trim(), header[3].trim(), header[4].trim());
+                ChordPeer.getChordLayer().updatePredecessor(header[2].trim(), header[3].trim(), header[4].trim());
                 return "";
             case "CHECKCONNECTION":
                 return "1.0 ALIVE";
