@@ -1,5 +1,4 @@
 import java.io.IOException;
-import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
@@ -9,7 +8,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-
 
 public class ChordPeer  implements PeerClientTest{
     static String address, portNumber;
@@ -22,8 +20,8 @@ public class ChordPeer  implements PeerClientTest{
 
     public ChordPeer(String idNumber, String addr, String port, String[] Suites){
         String encondedID = sha1Encode(addr + port);
-        id = Integer.parseInt(encondedID.substring(encondedID.length() - 2), 16);
-        System.out.println("ID: " + id);
+        id = Integer.parseInt(encondedID.substring(encondedID.length() - 4), 16);
+        System.out.println("Peer started with ID: " + id);
         address = addr;
         portNumber = port;
         threadPool = new ScheduledThreadPoolExecutor(100);
@@ -122,15 +120,15 @@ public class ChordPeer  implements PeerClientTest{
         threadPool.scheduleWithFixedDelay(new FixFingersTask(), 20, 20, TimeUnit.SECONDS);
         threadPool.scheduleWithFixedDelay(new CheckPredecessorTask(), 5, 20, TimeUnit.SECONDS);
 
-        // // Save the object in the rmi
-        // try {
-        //     PeerClientTest stub = (PeerClientTest) UnicastRemoteObject.exportObject(obj, 0);
-        //     Registry registry = LocateRegistry.getRegistry();
-        //     registry.bind(args[3], stub);
+        // Save the object in the rmi
+        try {
+            PeerClientTest stub = (PeerClientTest) UnicastRemoteObject.exportObject(obj, 0);
+            Registry registry = LocateRegistry.getRegistry();
+            registry.bind(args[3], stub);
 
-        // } catch (Exception e) {
-        //     e.printStackTrace();
-        // }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
     }
    
@@ -222,13 +220,10 @@ public class ChordPeer  implements PeerClientTest{
         }
 
         if(ChordPeer.fingerTable.isEmpty()){
-            System.out.println("EMPTY");
             ChordPeer.setSuccessor(new ChordNode(ChordPeer.id, ChordPeer.address, ChordPeer.portNumber));
         }
         else{
-            System.out.println("NOT EMPTY");
             ChordPeer.successor = fingerTable.firstEntry().getValue();
-            System.out.println("Successor: " + successor.getId());
         }
 
         ChordPeer.printFingerTable();
@@ -236,7 +231,7 @@ public class ChordPeer  implements PeerClientTest{
 
     public static void printFingerTable(){
         Iterator<Map.Entry<Integer, ChordNode>> iter = ChordPeer.fingerTable.entrySet().iterator();
-        System.out.println("FINGER TABLE:");
+        System.out.println("Finger Table Updated:");
         while(iter.hasNext()){
             Map.Entry<Integer, ChordNode> entry = iter.next();
             System.out.println("Finger nr "  + entry.getKey() + " :");

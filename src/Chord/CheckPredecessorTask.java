@@ -11,7 +11,10 @@ public class CheckPredecessorTask implements Runnable{
 
     public void run(){
         setSystemProperties();
-  
+        
+        if(ChordPeer.getPredecessor() == null){
+            return;
+        }
 
         SSLSocketFactory ssf = (SSLSocketFactory) SSLSocketFactory.getDefault();  
         SSLSocket s;
@@ -19,8 +22,6 @@ public class CheckPredecessorTask implements Runnable{
             s = (SSLSocket) ssf.createSocket(ChordPeer.getPredecessor().getAddress(), ChordPeer.getPredecessor().getPortNumber());
 
             if(ChordPeer.getCipherSuites().length == 0){
-                System.out.println("Sender Using Default Cipher Suites");
-    
                 s.setSSLParameters( new SSLParameters(ssf.getDefaultCipherSuites()));
             }
             else{

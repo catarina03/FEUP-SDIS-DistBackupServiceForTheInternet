@@ -20,21 +20,17 @@ public class ReceiveRequestTask implements Runnable{
             byte[] requestReceived = new byte[256];
 
             in.read(requestReceived, 0, requestReceived.length);
-            System.out.println("Request received: " + new String(requestReceived));
             
             Message request = new Message(requestReceived);
 
             String response = request.resolve();
 
             if(response.equals("")){
-                System.out.println("No message to be sent.");
                 return;
             }
 
             OutputStream out = socket.getOutputStream();
             out.write(response.getBytes(), 0, response.getBytes().length);
-            
-            System.out.println("Response sented: " + response);
 
         } catch (IOException e) {
 

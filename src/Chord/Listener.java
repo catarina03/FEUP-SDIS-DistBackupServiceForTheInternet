@@ -1,6 +1,4 @@
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLServerSocket;

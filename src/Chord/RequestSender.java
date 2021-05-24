@@ -1,4 +1,3 @@
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
@@ -31,8 +30,6 @@ public class RequestSender{
         s = (SSLSocket) ssf.createSocket(address, portNumber);
 
         if(cipherSuites.length == 0){
-            System.out.println("Sender Using Default Cipher Suites");
-
             s.setSSLParameters( new SSLParameters(ssf.getDefaultCipherSuites()));
         }
         else{
@@ -45,10 +42,8 @@ public class RequestSender{
         OutputStream out = s.getOutputStream();
 
         out.write(requestData, 0, requestData.length);
-        System.out.println("Request sent to " + portNumber+ ": " + new String(requestData));
 
         if(!wait){
-            System.out.println("Response not needed.");
             return null;
         }
 
@@ -56,8 +51,6 @@ public class RequestSender{
         
         byte[] response = new byte[10000];
         in.read(response, 0, response.length);
-
-        System.out.println("Response received: " + new String(response));
 
         return response;
 

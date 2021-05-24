@@ -25,6 +25,8 @@ public class StabilizeTask implements Runnable{
         RequestSender requestNotify = new RequestSender(ChordPeer.getSuccessor().getAddress(), "" + ChordPeer.getSuccessor().getPortNumber(), notifyMessage, ChordPeer.getCipherSuites(), false);
 
         requestNotify.send();
+
+        System.out.println("Stabilized.");
     }
     catch (Exception e) {
         System.out.println("Successor failed while trying to stabilize.");
