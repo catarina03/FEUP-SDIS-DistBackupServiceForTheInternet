@@ -34,7 +34,7 @@ public class CheckPredecessorTask implements Runnable{
             s.startHandshake();
     
             OutputStream out = s.getOutputStream();
-            String checkPredecessor = "1.0 CHECKCONNECTION";
+            String checkPredecessor = "CHECKCONNECTION";
             out.write(checkPredecessor.getBytes(), 0, checkPredecessor.getBytes().length);
     
             InputStream in = s.getInputStream();

@@ -61,7 +61,8 @@ public class ChordLayer {
     }
 
     public static void joinChord(String addr, String port) throws Exception{
-        String message = "1.0 FINDSUCCESSOR " + ChordPeer.getId() +  " \r\n\r\n";
+        System.out.println("Joining Chord with node " + port);
+        String message = "FINDSUCCESSOR " + ChordPeer.getId() +  " \r\n\r\n";
 
         RequestSender requestSender = new RequestSender(addr, port, message, ChordLayer.cipherSuites, true);
 
@@ -74,15 +75,15 @@ public class ChordLayer {
     }
 
     public String findSuccessor(int nodeID){
-        String message = "1.0 SUCCESSOR ";
+        String message = "SUCCESSOR ";
 
         if(dealWithInterval(ChordPeer.getId(), false, ChordLayer.successor.getId(), true, nodeID)){
             return message + ChordLayer.successor.getId() + " " + ChordLayer.successor.getAddress() + " " + ChordLayer.successor.getPortNumber() + " \r\n\r\n";
         }
 
         ChordNode closestNode = closestPrecedingNode(nodeID);
-        String requestMessage = "1.0 FINDSUCCESSOR " + nodeID + " \r\n\r\n";
-        System.out.println(("Asking node " + closestNode.getId() + " for successor"));
+        String requestMessage = "FINDSUCCESSOR " + nodeID + " \r\n\r\n";
+        // System.out.println(("Asking node " + closestNode.getId() + " for successor"));
         RequestSender request = new RequestSender(closestNode.getAddress(),"" + closestNode.getPortNumber(), requestMessage, ChordLayer.cipherSuites, true);
 
         try {
@@ -114,9 +115,9 @@ public class ChordLayer {
             setPredecessor(new ChordNode(Integer.parseInt(nodeID), addr, port));
         }
 
-        System.out.println("Predecessor Updated.");
-        System.out.println("Current Predecessor: " + ChordLayer.predecessor.getId());
-        System.out.println("Current Successor: " + ChordLayer.successor.getId());
+        // System.out.println("Predecessor Updated.");
+        // System.out.println("Current Predecessor: " + ChordLayer.predecessor.getId());
+        // System.out.println("Current Successor: " + ChordLayer.successor.getId());
     }
 
     public void dealWithNodeFailure(String nodeAddres, int nodePort){
@@ -143,13 +144,13 @@ public class ChordLayer {
     }
 
     public void printFingerTable(){
-        Iterator<Map.Entry<Integer, ChordNode>> iter = ChordLayer.fingerTable.entrySet().iterator();
-        System.out.println("Finger Table Updated:");
-        while(iter.hasNext()){
-            Map.Entry<Integer, ChordNode> entry = iter.next();
-            System.out.println("Finger nr "  + entry.getKey() + " :");
-            entry.getValue().printInfo();
-        }
+        // Iterator<Map.Entry<Integer, ChordNode>> iter = ChordLayer.fingerTable.entrySet().iterator();
+        // System.out.println("Finger Table Updated:");
+        // while(iter.hasNext()){
+        //     Map.Entry<Integer, ChordNode> entry = iter.next();
+        //     System.out.println("Finger nr "  + entry.getKey() + " :");
+        //     entry.getValue().printInfo();
+        // }
     }
 
     public Boolean dealWithInterval(int leftEndPoint, Boolean containsLeft, int rightEndPoint, Boolean containsRight, int value){

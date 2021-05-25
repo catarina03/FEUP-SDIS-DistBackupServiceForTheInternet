@@ -1,4 +1,4 @@
-public class Chunk implements Comparable{
+public class Chunk implements Comparable<Chunk>{
     private int number, size, desiredRep;
     private String fileID;
     private byte[] data;
@@ -55,8 +55,8 @@ public class Chunk implements Comparable{
     }
 
     @Override
-    public int compareTo(Object o) {
-        int comparableValue = ((Chunk) o).getNumber();
+    public int compareTo(Chunk o) {
+        int comparableValue = o.getNumber();
         
         return this.number - comparableValue;
     }

@@ -1,5 +1,6 @@
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Arrays;
 
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSocket;
@@ -14,6 +15,14 @@ public class RequestSender{
 
     public RequestSender(String addr, String port, String request, String[] suites, Boolean waitResponse){
         requestData = request.getBytes();
+        address = addr;
+        portNumber = getPort(port);
+        cipherSuites = suites;
+        wait = waitResponse;
+    }
+
+    public RequestSender(String addr, String port, byte[] request, String[] suites, Boolean waitResponse){
+        requestData = request;
         address = addr;
         portNumber = getPort(port);
         cipherSuites = suites;
@@ -49,10 +58,12 @@ public class RequestSender{
 
         InputStream in = s.getInputStream();
         
-        byte[] response = new byte[10000];
-        in.read(response, 0, response.length);
+        byte[] response = new byte[65000];
+        int bytesRead = in.read(response, 0, response.length);
 
-        return response;
+        // Get the data in an array of appropriate size
+        byte[] responseData = Arrays.copyOf(response, bytesRead);
+        return responseData;
 
     }
 

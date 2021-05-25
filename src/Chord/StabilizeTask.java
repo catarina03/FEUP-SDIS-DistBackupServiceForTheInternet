@@ -7,20 +7,20 @@ public class StabilizeTask implements Runnable{
     @Override
     public void run() {
         try{
-        System.out.println("Stabilizing....");
-        String requestPredecessorMessage = "1.0 GETPREDECESSOR " + ChordPeer.getChordLayer().getSuccessor().getId() + " \r\n\r\n";
+        //System.out.println("Stabilizing....");
+        String requestPredecessorMessage = "GETPREDECESSOR " + ChordPeer.getChordLayer().getSuccessor().getId() + " \r\n\r\n";
         
         RequestSender requestPredecessor = new RequestSender(ChordPeer.getChordLayer().getSuccessor().getAddress(), "" + ChordPeer.getChordLayer().getSuccessor().getPortNumber(), requestPredecessorMessage, ChordPeer.getChordLayer().getCipherSuites(), true);
 
         Message predecessorMessage = new Message(requestPredecessor.send());
 
-        String notifyMessage = "1.0 NOTIFY " + ChordPeer.getId() + " " + ChordPeer.getChordLayer().getAddress() + " " + ChordPeer.getChordLayer().getPortNumber() + " \r\n\r\n";
+        String notifyMessage = "NOTIFY " + ChordPeer.getId() + " " + ChordPeer.getChordLayer().getAddress() + " " + ChordPeer.getChordLayer().getPortNumber() + " \r\n\r\n";
 
-        if(predecessorMessage.getHeader().length == 5){
-            int predecessorID = Integer.parseInt(predecessorMessage.getHeader()[2].trim());
+        if(predecessorMessage.getHeader().length == 4){
+            int predecessorID = Integer.parseInt(predecessorMessage.getHeader()[1].trim());
 
             if(ChordPeer.getChordLayer().dealWithInterval(ChordPeer.getId(), false, ChordPeer.getChordLayer().getSuccessor().getId(), false, predecessorID)){
-                ChordPeer.getChordLayer().setSuccessor(new ChordNode(Integer.parseInt(predecessorMessage.getHeader()[2].trim()), predecessorMessage.getHeader()[3].trim(), predecessorMessage.getHeader()[4].trim()));
+                ChordPeer.getChordLayer().setSuccessor(new ChordNode(Integer.parseInt(predecessorMessage.getHeader()[1].trim()), predecessorMessage.getHeader()[2].trim(), predecessorMessage.getHeader()[3].trim()));
             }     
         }
 
@@ -28,7 +28,7 @@ public class StabilizeTask implements Runnable{
 
         requestNotify.send();
 
-        System.out.println("Stabilized.");
+       // System.out.println("Stabilized.");
     }
     catch (Exception e) {
         System.out.println("Successor failed while trying to stabilize.");

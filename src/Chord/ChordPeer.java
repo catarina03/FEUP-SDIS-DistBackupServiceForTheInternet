@@ -5,10 +5,6 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
-import java.security.MessageDigest;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -17,6 +13,7 @@ public class ChordPeer implements PeerClientInterface{
     private static Listener listener;
     private static ScheduledThreadPoolExecutor threadPool;
     private static ChordLayer chordLayer;
+    private static PeerFolder folder;
 
     public ChordPeer(String idNumber, String addr, String port, String[] suites){
         chordLayer = new ChordLayer(addr, port, suites);
@@ -25,6 +22,7 @@ public class ChordPeer implements PeerClientInterface{
         id = Integer.parseInt(encondedID.substring(encondedID.length() - idBits/4), 16);
         System.out.println("Peer started with ID: " + id);
 
+        folder = new PeerFolder("" + id);
         threadPool = new ScheduledThreadPoolExecutor(100);
     }
 
@@ -46,6 +44,10 @@ public class ChordPeer implements PeerClientInterface{
 
     public static int getIdBits() {
         return idBits;
+    }
+
+    public static PeerFolder getFolder() {
+        return folder;
     }
 
     /**
@@ -78,29 +80,98 @@ public class ChordPeer implements PeerClientInterface{
             ChordLayer.joinChord(args[4], args[5]);
         }
 
-
+        
         threadPool.scheduleWithFixedDelay(new StabilizeTask(), 5, 10, TimeUnit.SECONDS);
         threadPool.scheduleWithFixedDelay(new FixFingersTask(), 20, 20, TimeUnit.SECONDS);
         threadPool.scheduleWithFixedDelay(new CheckPredecessorTask(), 5, 20, TimeUnit.SECONDS);
+       
 
-        // // Save the object in the rmi
-        // try {
-        //     PeerClientTest stub = (PeerClientTest) UnicastRemoteObject.exportObject(obj, 0);
-        //     Registry registry = LocateRegistry.getRegistry();
-        //     registry.bind(args[3], stub);
+        // Save the object in the rmi
+        try {
+            PeerClientInterface stub = (PeerClientInterface) UnicastRemoteObject.exportObject(obj, 0);
+            Registry registry = LocateRegistry.getRegistry();
+            registry.bind(args[3], stub);
 
-        // } catch (Exception e) {
-        //     e.printStackTrace();
-        // }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
     }
 
-    
-
+    /**
+     * Backup the file given, for that, send a message for each chunk, so that other peers can save each chunk
+     * @param filePath - path of the file to be backed up
+     * @param repDegree - desired replication degree of the file
+     * @return "done" if success
+     */
     @Override
     public String backup(String filePath, int repDegree) throws RemoteException {
-        // TODO Auto-generated method stub
-        return null;
+        System.out.println("Received Backup Request of file " + filePath);
+        // Create a file and save it in the folder
+        FileData newFile = new FileData(filePath, repDegree);
+        folder.addFile(newFile);
+
+        String[] successorResponse = ChordPeer.getChordLayer().findSuccessor(Integer.parseInt(newFile.getID())).split(" ");
+        ChordNode successor = new ChordNode(Integer.parseInt(successorResponse[1].trim()), successorResponse[2].trim(), successorResponse[3].trim());
+
+        System.out.println("Backing up File with id " + newFile.getID() + " in peer " + successor.getId() + "with size");
+
+        if(successor.getId() == id){
+            System.out.println("Saving file in predecessor.");
+            successor = ChordPeer.getChordLayer().getPredecessor();
+        }
+
+        String saveFileMessage = "SAVEFILE " + newFile.getID() + " " + newFile.getTotalChunks() + " " + newFile.getReplicationDegree() + " " + newFile.getFileSize() + " " + newFile.getFilePath() + " \r\n\r\n";
+
+        RequestSender saveFileRequest = new RequestSender(successor.getAddress(), "" + successor.getPortNumber(), saveFileMessage, chordLayer.getCipherSuites(), false);
+        
+        try {
+            saveFileRequest.send();
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        System.out.println("Sent save file message");
+        System.out.println("Sending " + newFile.getTotalChunks() + " chunks");
+        // Iterate over the chunks, sending a message for each one thourgh the multicast channel
+        for(int i = 0; i < newFile.getTotalChunks(); i++){
+            // Create the header and body of the message
+            String header ="PUTCHUNK " + newFile.getID() + " " + i + " " + newFile.getReplicationDegree() + " " + newFile.getChunk(i).getData().length + " \r\n\r\n";
+            byte[] body = newFile.getChunk(i).getData();
+            byte[] headerBytes = header.getBytes();
+            // Join the header and the boddy into an array
+            byte[] message = new byte[headerBytes.length + body.length];
+            System.arraycopy(headerBytes, 0, message, 0, headerBytes.length);
+            System.arraycopy(body, 0, message, headerBytes.length, body.length);
+            System.out.println("Sending message with length " + message.length + " and body size " + body.length);
+            // Send the message
+            RequestSender putChunkRequest = new RequestSender(successor.getAddress(), "" + successor.getPortNumber(), message, chordLayer.getCipherSuites(), true);
+
+            try {
+                System.out.println("Sending Chunk");
+                putChunkRequest.send();
+
+                System.out.println("Sent putchunk message");
+            } catch (Exception e) {
+                chordLayer.dealWithNodeFailure(successor.getAddress(), successor.getPortNumber());
+                
+                backup(filePath, repDegree);
+
+                return "done";
+            }
+        }
+
+        String fileSavedMessage = "SAVECOMPLETED " + newFile.getID() + " \r\n\r\n";
+        RequestSender savesFileRequest = new RequestSender(successor.getAddress(), "" + successor.getPortNumber(), fileSavedMessage, chordLayer.getCipherSuites(), false);
+        System.out.println("Sent " + fileSavedMessage);
+        try {
+            savesFileRequest.send();
+        } catch (Exception e) {
+            
+        }
+
+        return "done";
     }
+
 
 }

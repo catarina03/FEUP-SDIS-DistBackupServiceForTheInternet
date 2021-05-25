@@ -1,5 +1,4 @@
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -23,7 +22,7 @@ public class PeerFolder {
         key --> File ID
         Value --> ID of the Peer who stored it
     */
-    private ConcurrentHashMap<String, String> fileLocation;
+    private ConcurrentHashMap<String, ChordNode> fileLocation;
 
     /*
         key --> File ID
@@ -127,6 +126,20 @@ public class PeerFolder {
      */
     public String getPath(){
         return peerFolder.toString();
+    }
+
+    /**
+     * @return HashMap of the file locations
+     */
+    public ConcurrentHashMap<String, ChordNode> getFileLocation() {
+        return fileLocation;
+    }
+
+    /**
+     * @return HashMap of the stored files
+     */
+    public ConcurrentHashMap<String, FileData> getStoredFiles() {
+        return storedFiles;
     }
 
     /**
@@ -237,6 +250,15 @@ public class PeerFolder {
     }
 
     /**
+     * Check if a certain file is saved in the folder
+     * @param fileID - id of the file
+     * @return true if the file is saved, false otherwise
+     */
+    public boolean fileIsStored(String fileID){
+        return storedFiles.containsKey(fileID);
+    }
+
+    /**
      * Check if a certain file is saved with its pathn
      * @param pathname - path of the file
      * @return  true if the file is saved, false otherwise
@@ -329,6 +351,24 @@ public class PeerFolder {
     public void addFile(FileData file){
         filesBackedUp.add(file);
     }
+
+    /**
+     * Adds a file location
+     * @param file - file to be stored
+     */
+    public void addFileLocation(String fileID, ChordNode node){
+        fileLocation.put(fileID, node);
+    }
+
+    /**
+     * Stores a file
+     * @param file - file to be stored
+     */
+    public void storeFile(String fileID, FileData file){
+        storedFiles.put(fileID, file);
+
+        storageUsed += file.getFileSize();
+    }
     
     /**
      * Add a chunk that was requested by the peer
@@ -388,31 +428,10 @@ public class PeerFolder {
     /**
      * Saves a chunk into the array and saves it into the peer folder
      * @param fileID - id of the file to which the chunk belongs
-     * @param chunkNr - number of the chunk
-     * @param peerID - id of the peer that stored the chunk
+     * @param chunk - chunkToBeSaved
      */
-    public void saveChunk(String fileID, Chunk chunk, String peerID){
-        // If the key exists just add the chunk into the array
-        if(storedChunks.containsKey(fileID)){
-            storedChunks.get(fileID).add(chunk);
-        }
-        else{
-            // If the key doens't exist, create the array and save it with the fileID as a key
-            ArrayList<Chunk> chunks = new ArrayList<Chunk>();
-            chunks.add(chunk);
-            storedChunks.put(fileID, chunks);
-        }
-
-        addChunkReplication(fileID, chunk.getNumber(), peerID);
-
-        // Save the chunk into a real file in the peer's folder directory
-        try (FileOutputStream fos = new FileOutputStream(peerFolder.toString()+"/"+chunk.getFileID()+chunk.getNumber())){
-            fos.write(chunk.getData());
-            storageUsed += chunk.getSize()/1000;
-        }
-        catch(Exception e){
-            e.printStackTrace();
-        }
+    public void saveChunk(String fileID, Chunk chunk){
+        storedFiles.get(fileID).addChunk(chunk);
     }
 
     /**

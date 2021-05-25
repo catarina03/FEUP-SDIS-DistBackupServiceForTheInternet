@@ -23,8 +23,30 @@ public class FileData {
         splitFile();
     }
 
+    public FileData(String id, int chunks, int repDegree, String filePath){
+        this.fileID = id;
+        this.nrChunks = chunks;
+        this.replicationDegree = repDegree;
+        this.chunks = new ArrayList<>();
+        this.file = new File(filePath);
+    }
+
+    public int getFileSize(){
+        int size = 0;
+
+        for(int i = 0; i < chunks.size(); i++){
+            size += chunks.get(i).getSize();
+        }
+
+        return size;
+    }
+
+    public void addChunk(Chunk chunk){
+        chunks.add(chunk);
+    }
+
     private void splitFile(){
-        int chunkSize = 64000;
+        int chunkSize = 10000;
         byte[] chunkBuffer = new byte[chunkSize];
 
         // Loop thourgh the file while saving its content into chunks
@@ -61,13 +83,14 @@ public class FileData {
         // Uses the name of the files, the last time it was modified and the owner to ensure it's a unique string
         String fileMetadata = this.file.getName() + this.file.lastModified() + this.file.getParent();
 
-        this.fileID = sha256Encode(fileMetadata); 
+        String encondedID = sha1Encode(fileMetadata); 
+        this.fileID = "" + Integer.parseInt(encondedID.substring(encondedID.length() - ChordPeer.getIdBits()/4), 16);
 
     }
 
-    private String sha256Encode(final String stringToEncode) {
+    private String sha1Encode(final String stringToEncode) {
         try{
-            final MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            final MessageDigest digest = MessageDigest.getInstance("SHA-1");
             final byte[] hash = digest.digest(stringToEncode.getBytes("UTF-8"));
             final StringBuilder hexString = new StringBuilder();
 
@@ -114,11 +137,19 @@ public class FileData {
     public Chunk getChunk(int chunkNumber){
         return this.chunks.get(chunkNumber);
     }
+
     /**
      * @return the path of the file
      */
     public String getFilePath(){
         return this.file.getPath();
+    }
+
+    /**
+     * @return the name of the file
+     */
+    public String getFileName(){
+        return this.file.getName();
     }
 
     /**
