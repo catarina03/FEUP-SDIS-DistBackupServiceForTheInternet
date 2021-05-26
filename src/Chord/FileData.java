@@ -11,13 +11,14 @@ public class FileData {
     private ArrayList<Chunk> chunks;
     private File file;
     private String fileID;
+    private int fileNumber;
 
-    public FileData(String filePath, int repDegree){
+    public FileData(String filePath, int repDegree, int number){
         this.file = new File(filePath);
         this.chunks = new ArrayList<>();
         this.nrChunks = 0;
         this.replicationDegree = repDegree;
-
+        this.fileNumber = number;
         calculatID();
 
         splitFile();
@@ -81,7 +82,7 @@ public class FileData {
     private void calculatID(){
         // Create a String to be used to generate the file ID. 
         // Uses the name of the files, the last time it was modified and the owner to ensure it's a unique string
-        String fileMetadata = this.file.getName() + this.file.lastModified() + this.file.getParent();
+        String fileMetadata = this.file.getName() + this.file.lastModified() + this.file.getParent() + this.fileNumber;
 
         String encondedID = sha1Encode(fileMetadata); 
         this.fileID = "" + Integer.parseInt(encondedID.substring(encondedID.length() - ChordPeer.getIdBits()/4), 16);

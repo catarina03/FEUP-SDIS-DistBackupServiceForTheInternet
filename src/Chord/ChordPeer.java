@@ -107,10 +107,20 @@ public class ChordPeer implements PeerClientInterface{
     @Override
     public String backup(String filePath, int repDegree) throws RemoteException {
         System.out.println("Received Backup Request of file " + filePath);
-        // Create a file and save it in the folder
-        FileData newFile = new FileData(filePath, repDegree);
-        folder.addFile(newFile);
+        
+        for(int i = 0; i < repDegree; i++){
+            // Create a file and save it in the folder
+            FileData newFile = new FileData(filePath, repDegree, i);
+            folder.addFile(newFile);
 
+            saveFile(newFile);
+        }
+
+        return "done";
+    }
+
+    private void saveFile(FileData newFile) throws RemoteException{
+        
         String[] successorResponse = ChordPeer.getChordLayer().findSuccessor(Integer.parseInt(newFile.getID())).split(" ");
         ChordNode successor = new ChordNode(Integer.parseInt(successorResponse[1].trim()), successorResponse[2].trim(), successorResponse[3].trim());
 
@@ -155,9 +165,9 @@ public class ChordPeer implements PeerClientInterface{
             } catch (Exception e) {
                 chordLayer.dealWithNodeFailure(successor.getAddress(), successor.getPortNumber());
                 
-                backup(filePath, repDegree);
+                backup(newFile.getFilePath(), newFile.getReplicationDegree());
 
-                return "done";
+                return;
             }
         }
 
@@ -170,7 +180,7 @@ public class ChordPeer implements PeerClientInterface{
             
         }
 
-        return "done";
+        folder.addBackupNode(newFile.getFilePath(), successor);
     }
 
 

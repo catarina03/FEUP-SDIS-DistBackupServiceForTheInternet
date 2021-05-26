@@ -95,15 +95,11 @@ public class Message{
         
     }
     private void saveFile(){
-        System.out.println("SAVING FILE");
-        
         boolean fileSuccessor  = ChordPeer.getChordLayer().dealWithInterval(ChordPeer.getChordLayer().getPredecessor().getId(), false, ChordPeer.getId(), false, Integer.parseInt(header[1].trim()));
 
         if(fileSuccessor && (ChordPeer.getFolder().getStorageUsed() + Integer.parseInt(header[4].trim()) < ChordPeer.getFolder().getStorageSize())){
             FileData storedFile = new FileData(header[1].trim(), Integer.parseInt(header[2].trim()), Integer.parseInt(header[3].trim()), header[5].trim());
             ChordPeer.getFolder().storeFile(storedFile.getID(), storedFile);
-            System.out.println("FILE STORED Started.");
-            System.out.println("File with name: " + ChordPeer.getFolder().getStoredFiles().get(storedFile.getID()).getFileName());
         }
         else{
             String[] successorResponse = ChordPeer.getChordLayer().findSuccessor(Integer.parseInt(header[1].trim())).split(" ");
@@ -124,7 +120,6 @@ public class Message{
     }
 
     private void saveFileChunk(){
-        System.out.println("PUTCHUNK RECEIVED");
         if(ChordPeer.getFolder().getFileLocation().containsKey(header[1].trim())){
             ChordNode fileSuccessor = ChordPeer.getFolder().getFileLocation().get(header[1].trim());
             
@@ -140,19 +135,15 @@ public class Message{
 
             return;
         }
-        System.out.println("CREATING CHUNK");
-        System.out.println("Nr: " + header[2].trim() + " Size: " + body.length);
+
         Chunk chunkToStore = new Chunk(Integer.parseInt(header[2].trim()), body.length, body, header[1].trim());
-        System.out.println("CREATED CHUNK");
 
         ChordPeer.getFolder().saveChunk(chunkToStore.getFileID(), chunkToStore);
-
-        System.out.println("Save Chunk " + chunkToStore.getNumber());
 
     }
 
     private void locallySaveFile(){
-        System.out.println("LOCALLY SAVING");
+
         if(ChordPeer.getFolder().getFileLocation().containsKey(header[1].trim())){
             ChordNode fileSuccessor = ChordPeer.getFolder().getFileLocation().get(header[1].trim());
             
@@ -166,18 +157,17 @@ public class Message{
 
             return;
         }
-        System.out.println("ACTUALLY LOCALLY SAVING FILE " + header[1].trim() + " or " + header[1]);
+
         // Get all the chunks of the file and sorted in order
         FileData file = ChordPeer.getFolder().getStoredFiles().get(header[1].trim());
-        System.out.println("File exists");
+
         ArrayList<Chunk> fileChunks = file.getFileChunks();
-        System.out.println("File has chunks " + fileChunks.size());
+
         Collections.sort(fileChunks);
-        System.out.println("Saving file at " + ChordPeer.getFolder().getPath()+ "/" + file.getFileName());
+
         // Write the chunks into the file 
         try (FileOutputStream fos = new FileOutputStream(ChordPeer.getFolder().getPath()+"/" + file.getFileName())){
             for(Chunk c : fileChunks){
-                System.out.println("Writing chunk with number: " + c.getNumber());
                 fos.write(c.getData());
             }
             fos.close(); //There is no more need for this line since you had created the instance of "fos" inside the try. And this will automatically close the OutputStream
