@@ -1,4 +1,4 @@
-
+import java.util.concurrent.TimeUnit;
 
 public class StabilizeTask implements Runnable{
 
@@ -33,7 +33,8 @@ public class StabilizeTask implements Runnable{
     catch (Exception e) {
         System.out.println("Successor failed while trying to stabilize.");
         ChordPeer.getChordLayer().dealWithNodeFailure(ChordPeer.getChordLayer().getSuccessor().getAddress(), ChordPeer.getChordLayer().getSuccessor().getPortNumber());
-        run();
+        
+        ChordPeer.getThreadPool().scheduleWithFixedDelay(new StabilizeTask(), 5, 20, TimeUnit.SECONDS);
     } 
            
     }

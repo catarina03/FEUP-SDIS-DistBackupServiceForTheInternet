@@ -2,6 +2,7 @@
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSocket;
@@ -34,7 +35,7 @@ public class CheckPredecessorTask implements Runnable{
             s.startHandshake();
     
             OutputStream out = s.getOutputStream();
-            String checkPredecessor = "CHECKCONNECTION";
+            String checkPredecessor = "CHECKCONNECTION" +  " \r\n\r\n";
             out.write(checkPredecessor.getBytes(), 0, checkPredecessor.getBytes().length);
     
             InputStream in = s.getInputStream();
@@ -45,6 +46,8 @@ public class CheckPredecessorTask implements Runnable{
         } catch (Exception e) {
             ChordPeer.getChordLayer().setPredecessor(null);
             System.out.println("Predecessor Offline");
+
+            ChordPeer.getThreadPool().scheduleWithFixedDelay(new CheckPredecessorTask(), 5, 20, TimeUnit.SECONDS);
         } 
     }
 

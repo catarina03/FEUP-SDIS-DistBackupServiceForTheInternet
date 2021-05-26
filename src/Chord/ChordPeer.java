@@ -92,6 +92,7 @@ public class ChordPeer implements PeerClientInterface{
         threadPool.scheduleWithFixedDelay(new StabilizeTask(), 5, 10, TimeUnit.SECONDS);
         threadPool.scheduleWithFixedDelay(new FixFingersTask(), 20, 20, TimeUnit.SECONDS);
         threadPool.scheduleWithFixedDelay(new CheckPredecessorTask(), 5, 20, TimeUnit.SECONDS);
+        threadPool.scheduleWithFixedDelay(new CheckBackupNodesTask(), 25, 20, TimeUnit.SECONDS);
        
 
         // Save the object in the rmi
@@ -127,19 +128,22 @@ public class ChordPeer implements PeerClientInterface{
         return "done";
     }
 
-    private void saveFile(FileData newFile) throws RemoteException{
+    public static void saveFile(FileData newFile){
         
         String[] successorResponse = ChordPeer.getChordLayer().findSuccessor(Integer.parseInt(newFile.getID())).split(" ");
         ChordNode successor = new ChordNode(Integer.parseInt(successorResponse[1].trim()), successorResponse[2].trim(), successorResponse[3].trim());
-
-        System.out.println("Backing up File with id " + newFile.getID() + " in peer " + successor.getId() + "with size");
 
         if(successor.getId() == id){
             System.out.println("Saving file in predecessor.");
             successor = ChordPeer.getChordLayer().getPredecessor();
 
             if(successor == null || successor.getId() == id){
-                System.out.println("File cannot be saved for there are no nodes that can save the file");
+                System.out.println("Saving file in successor.");
+                successor = ChordPeer.getChordLayer().getSuccessor();
+                if(successor == null || successor.getId() == id){
+                    System.out.println("File cannot be saved because i'm alone");
+                    return;
+                }
             }
         }
 
@@ -148,39 +152,42 @@ public class ChordPeer implements PeerClientInterface{
         RequestSender saveFileRequest = new RequestSender(successor.getAddress(), "" + successor.getPortNumber(), saveFileMessage, chordLayer.getCipherSuites(), true);
         
         try {
-            if(new String(saveFileRequest.send()).equals("NOTSAVED")){
+            String[] response = new String(saveFileRequest.send()).split(" ");
+            if(response[0].equals("NOTSAVED")){
                 System.out.println("File cannot be saved for there are no nodes that can save the file");
                 return;
             }
+            else if(!response[1].equals("NULL")){
+                successor = new ChordNode(Integer.parseInt(response[1]), response[2], response[3].trim());
+            }
         } catch (Exception e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
         }
-        System.out.println("Sent save file message");
-        System.out.println("Sending " + newFile.getTotalChunks() + " chunks");
+
+        System.out.println("Storing file with id " + newFile.getID() + " in peer " + successor.getId());
+
         // Iterate over the chunks, sending a message for each one thourgh the multicast channel
         for(int i = 0; i < newFile.getTotalChunks(); i++){
+
             // Create the header and body of the message
             String header ="PUTCHUNK " + newFile.getID() + " " + i + " " + newFile.getReplicationDegree() + " " + newFile.getChunk(i).getData().length + " \r\n\r\n";
             byte[] body = newFile.getChunk(i).getData();
             byte[] headerBytes = header.getBytes();
+
             // Join the header and the boddy into an array
             byte[] message = new byte[headerBytes.length + body.length];
             System.arraycopy(headerBytes, 0, message, 0, headerBytes.length);
             System.arraycopy(body, 0, message, headerBytes.length, body.length);
-            System.out.println("Sending message with length " + message.length + " and body size " + body.length);
             // Send the message
             RequestSender putChunkRequest = new RequestSender(successor.getAddress(), "" + successor.getPortNumber(), message, chordLayer.getCipherSuites(), true);
 
             try {
-                System.out.println("Sending Chunk");
                 putChunkRequest.send();
 
                 System.out.println("Sent putchunk message");
             } catch (Exception e) {
                 chordLayer.dealWithNodeFailure(successor.getAddress(), successor.getPortNumber());
                 
-                backup(newFile.getFilePath(), newFile.getReplicationDegree());
+                saveFile(newFile);
 
                 return;
             }
@@ -188,13 +195,14 @@ public class ChordPeer implements PeerClientInterface{
 
         String fileSavedMessage = "SAVECOMPLETED " + newFile.getID() + " \r\n\r\n";
         RequestSender savesFileRequest = new RequestSender(successor.getAddress(), "" + successor.getPortNumber(), fileSavedMessage, chordLayer.getCipherSuites(), false);
-        System.out.println("Sent " + fileSavedMessage);
+
         try {
             savesFileRequest.send();
         } catch (Exception e) {
             
         }
-
+        
+        System.out.println("File backup in peer: " + successor.getPortNumber());
         folder.addBackupNode(newFile.getFilePath(), successor);
     }
 

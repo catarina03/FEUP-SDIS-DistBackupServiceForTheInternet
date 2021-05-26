@@ -135,6 +135,20 @@ public class PeerFolder {
     }
 
     /**
+     * Retrieves the ID of a  file saved by its path
+     * @param filePath - path of the file to get the ID
+     * @return  return the ID of the file
+     */
+    public FileData getFilebyPath(String filePath){
+        for(int i = 0; i < filesBackedUp.size(); i++){
+            if(filesBackedUp.get(i).getFilePath().equals(filePath)){
+                return filesBackedUp.get(i);
+            }
+        }
+        return null;
+    }
+
+    /**
      * Retrieves the number of chunks saved of a certain file
      * @param pathname of the file
      * @return number of chunks stored that belong to the file with pathname given
