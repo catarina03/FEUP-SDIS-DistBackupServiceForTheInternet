@@ -4,6 +4,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 
 
@@ -179,6 +180,23 @@ public class PeerFolder {
     public boolean fileIsSavedPathname(String pathname){
         for(int i = 0; i < filesBackedUp.size(); i++){
             if(filesBackedUp.get(i).getFilePath().equals(pathname)){
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if a certain file is saved with its pathn
+     * @param pathname - path of the file
+     * @return  true if the file is saved, false otherwise
+     */
+    public boolean fileIsStoredPathname(String pathname){
+        Collection<FileData> collection = storedFiles.values();
+
+        for(FileData file : collection){
+            if(file.getFilePath().equals(pathname)){
                 return true;
             }
         }

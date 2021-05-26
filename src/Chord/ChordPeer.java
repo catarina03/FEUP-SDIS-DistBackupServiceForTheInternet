@@ -14,6 +14,7 @@ public class ChordPeer implements PeerClientInterface{
     private static ScheduledThreadPoolExecutor threadPool;
     private static ChordLayer chordLayer;
     private static PeerFolder folder;
+    private static Boolean savingFile = false;
 
     public ChordPeer(String idNumber, String addr, String port, String[] suites){
         chordLayer = new ChordLayer(addr, port, suites);
@@ -50,6 +51,13 @@ public class ChordPeer implements PeerClientInterface{
         return folder;
     }
 
+    public static Boolean getSavingFile() {
+        return savingFile;
+    }
+
+    public static void setSavingFile(Boolean savingFile) {
+        ChordPeer.savingFile = savingFile;
+    }
     /**
      * 
      * @param args - Array containing the following information:
@@ -129,14 +137,21 @@ public class ChordPeer implements PeerClientInterface{
         if(successor.getId() == id){
             System.out.println("Saving file in predecessor.");
             successor = ChordPeer.getChordLayer().getPredecessor();
+
+            if(successor == null || successor.getId() == id){
+                System.out.println("File cannot be saved for there are no nodes that can save the file");
+            }
         }
 
         String saveFileMessage = "SAVEFILE " + newFile.getID() + " " + newFile.getTotalChunks() + " " + newFile.getReplicationDegree() + " " + newFile.getFileSize() + " " + newFile.getFilePath() + " \r\n\r\n";
 
-        RequestSender saveFileRequest = new RequestSender(successor.getAddress(), "" + successor.getPortNumber(), saveFileMessage, chordLayer.getCipherSuites(), false);
+        RequestSender saveFileRequest = new RequestSender(successor.getAddress(), "" + successor.getPortNumber(), saveFileMessage, chordLayer.getCipherSuites(), true);
         
         try {
-            saveFileRequest.send();
+            if(new String(saveFileRequest.send()).equals("NOTSAVED")){
+                System.out.println("File cannot be saved for there are no nodes that can save the file");
+                return;
+            }
         } catch (Exception e) {
             // TODO Auto-generated catch block
             e.printStackTrace();

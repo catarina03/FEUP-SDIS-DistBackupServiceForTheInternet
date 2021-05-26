@@ -77,8 +77,7 @@ public class Message{
             case "CHECKCONNECTION":
                 return "ALIVE";
             case "SAVEFILE":
-                saveFile();
-                return "SAVED";
+                return saveFile();
 
             case "PUTCHUNK":
                 saveFileChunk();
@@ -94,29 +93,62 @@ public class Message{
         return "";
         
     }
-    private void saveFile(){
-        boolean fileSuccessor  = ChordPeer.getChordLayer().dealWithInterval(ChordPeer.getChordLayer().getPredecessor().getId(), false, ChordPeer.getId(), false, Integer.parseInt(header[1].trim()));
+    private String saveFile(){
 
-        if(fileSuccessor && (ChordPeer.getFolder().getStorageUsed() + Integer.parseInt(header[4].trim()) < ChordPeer.getFolder().getStorageSize())){
+        if(ChordPeer.getFolder().fileIsSaved(header[1].trim()) || ChordPeer.getSavingFile()){
+            return "NOTSAVED";
+        }
+
+        ChordPeer.setSavingFile(true);
+
+        if((ChordPeer.getFolder().getStorageUsed() + Integer.parseInt(header[4].trim()) < ChordPeer.getFolder().getStorageSize()) && !ChordPeer.getFolder().fileIsStoredPathname(header[5].trim())){
             FileData storedFile = new FileData(header[1].trim(), Integer.parseInt(header[2].trim()), Integer.parseInt(header[3].trim()), header[5].trim());
             ChordPeer.getFolder().storeFile(storedFile.getID(), storedFile);
         }
         else{
-            String[] successorResponse = ChordPeer.getChordLayer().findSuccessor(Integer.parseInt(header[1].trim())).split(" ");
-            ChordNode successor = new ChordNode(Integer.parseInt(successorResponse[2].trim()), successorResponse[3].trim(), successorResponse[4].trim());
+            ChordNode successor;
+            Boolean triedPredecessor;
+
+            if(ChordPeer.getChordLayer().getPredecessor() == null && ChordPeer.getChordLayer().getSuccessor() != null){
+                successor = ChordPeer.getChordLayer().getSuccessor();
+                triedPredecessor = false;
+            }
+            else{
+                successor = ChordPeer.getChordLayer().getPredecessor();
+                triedPredecessor = true;
+            }
+
             
-            RequestSender saveFileRequest = new RequestSender(successor.getAddress(), "" + successor.getPortNumber(), message, ChordPeer.getChordLayer().getCipherSuites(), false);
+            RequestSender saveFileRequest = new RequestSender(successor.getAddress(), "" + successor.getPortNumber(), message, ChordPeer.getChordLayer().getCipherSuites(), true);
 
             try {
-                saveFileRequest.send();
+                String response = new String(saveFileRequest.send());
+
+                if(response.equals("NOTSAVED") && triedPredecessor){
+                    successor = ChordPeer.getChordLayer().getSuccessor();
+
+                    saveFileRequest = new RequestSender(successor.getAddress(), "" + successor.getPortNumber(), message, ChordPeer.getChordLayer().getCipherSuites(), true);
+                
+                    response = new String(saveFileRequest.send());
+
+                    if(response.equals("NOTSAVED")){
+                        ChordPeer.setSavingFile(false);
+                        return response;
+                    }
+                }
 
                 ChordPeer.getFolder().addFileLocation(header[1].trim(), successor);
+
             } catch (Exception e) {
                 ChordPeer.getChordLayer().dealWithNodeFailure(successor.getAddress(), successor.getPortNumber());
 
                 saveFile();
             }
         }
+
+        ChordPeer.setSavingFile(false);
+
+        return "SAVED";
     }
 
     private void saveFileChunk(){
