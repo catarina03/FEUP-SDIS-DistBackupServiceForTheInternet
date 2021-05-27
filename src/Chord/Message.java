@@ -1,5 +1,6 @@
  
 
+import java.io.File;
 import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -81,6 +82,9 @@ public class Message{
             case "SAVECOMPLETED":
                 locallySaveFile();
                 return "LOCALLYSAVED";
+            case "DELETE":
+                deleteFile();
+                return "DELETED";
             default:
                 break;
             
@@ -181,6 +185,17 @@ public class Message{
             e.printStackTrace();
         }
         
+    }
+
+    private void deleteFile(){
+        FileData file = ChordPeer.getFolder().getStoredFile(header[1].trim());
+
+        File fileToDelete = new File(ChordPeer.getFolder().getPath()+ "/" + file.getFileName());
+        if(fileToDelete.delete()){
+            System.out.println("Deleted file " + file.getID() + " with path " + ChordPeer.getFolder().getPath()+ "/" + file.getFileName());
+        }
+
+        ChordPeer.getFolder().deleteStoredFile(header[1].trim());
     }
     
 }

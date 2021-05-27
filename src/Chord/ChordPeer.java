@@ -204,6 +204,7 @@ public class ChordPeer implements PeerClientInterface{
         }
         
         System.out.println("File backup in peer: " + successor.getPortNumber());
+        System.out.println("Saving file with path: " + newFile.getFilePath());
         folder.addBackupNode(newFile.getFilePath(), successor);
     }
 
@@ -214,7 +215,7 @@ public class ChordPeer implements PeerClientInterface{
      */
     @Override
     public String delete(String filePath){
-
+        System.out.println("Deleting file " + filePath);
         // Check if the file is saved
         if(folder.fileIsSavedPathname(filePath)){
             ArrayList<ChordNode> nodes = ChordPeer.getFolder().getBackupNodes().get(filePath);
@@ -239,7 +240,7 @@ public class ChordPeer implements PeerClientInterface{
             }
 
 
-            
+            ChordPeer.getFolder().deleteBackupFile(filePath);
             
         } else {
             System.out.println("File was never backed up...");

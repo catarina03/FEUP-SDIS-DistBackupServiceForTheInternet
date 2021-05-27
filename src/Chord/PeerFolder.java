@@ -59,6 +59,15 @@ public class PeerFolder {
     }
 
     /**
+     * Get a specific file stored in the folder
+     * @param filePath - path of the file to be retrieved
+     * @return null if the file isn't stored, or the file with the path given
+     */
+    public FileData getStoredFile(String filePath){
+        return storedFiles.get(filePath);
+    }
+
+    /**
      * @return array containing the files stored in the folder
      */
     public ArrayList<FileData> getFilesBackedUp(){
@@ -163,15 +172,6 @@ public class PeerFolder {
     }
 
     /**
-     * Check if a certain file is saved in the folder
-     * @param filePath - id of the file
-     * @return true if the file is saved, false otherwise
-     */
-    public boolean fileIsStored(String filePath){
-        return storedFiles.containsKey(filePath);
-    }
-
-    /**
      * Check if a certain file is saved with its pathn
      * @param pathname - path of the file
      * @return  true if the file is saved, false otherwise
@@ -184,6 +184,15 @@ public class PeerFolder {
         }
 
         return false;
+    }
+
+    /**
+     * Check if a certain file is saved in the folder
+     * @param filePath - id of the file
+     * @return true if the file is saved, false otherwise
+     */
+    public boolean fileIsStored(String filePath){
+        return storedFiles.containsKey(filePath);
     }
 
     /**
@@ -237,5 +246,21 @@ public class PeerFolder {
      */
     public void saveChunk(String filePath, Chunk chunk){
         storedFiles.get(filePath).addChunk(chunk);
+    }
+
+    /**
+     * Delete backup file information from bakcupNodes of a file that has been deleted
+     * @param filePath - path of the file tha has been deleted
+     */
+    public void deleteBackupFile(String filePath){
+        backupNodes.remove(filePath);
+    }
+
+    /**
+     * Delete stored file information from storedFiles of a file that has been deleted
+     * @param filePath - path of the file tha has been deleted
+     */
+    public void deleteStoredFile(String filePath){
+        storedFiles.remove(filePath);
     }
 }
