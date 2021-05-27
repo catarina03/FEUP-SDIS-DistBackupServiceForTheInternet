@@ -1,5 +1,8 @@
+ 
+
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSocket;
@@ -12,27 +15,27 @@ public class CheckPredecessorTask implements Runnable{
     public void run(){
         setSystemProperties();
         
-        if(ChordPeer.getPredecessor() == null){
+        if(ChordPeer.getChordLayer().getPredecessor() == null){
             return;
         }
 
         SSLSocketFactory ssf = (SSLSocketFactory) SSLSocketFactory.getDefault();  
         SSLSocket s;
         try {
-            s = (SSLSocket) ssf.createSocket(ChordPeer.getPredecessor().getAddress(), ChordPeer.getPredecessor().getPortNumber());
+            s = (SSLSocket) ssf.createSocket(ChordPeer.getChordLayer().getPredecessor().getAddress(), ChordPeer.getChordLayer().getPredecessor().getPortNumber());
 
-            if(ChordPeer.getCipherSuites().length == 0){
+            if(ChordPeer.getChordLayer().getCipherSuites().length == 0){
                 s.setSSLParameters( new SSLParameters(ssf.getDefaultCipherSuites()));
             }
             else{
                 
-                s.setSSLParameters(new SSLParameters(ChordPeer.getCipherSuites()));
+                s.setSSLParameters(new SSLParameters(ChordPeer.getChordLayer().getCipherSuites()));
             }
     
             s.startHandshake();
     
             OutputStream out = s.getOutputStream();
-            String checkPredecessor = "1.0 CHECKCONNECTION";
+            String checkPredecessor = "CHECKCONNECTION" +  " \r\n\r\n";
             out.write(checkPredecessor.getBytes(), 0, checkPredecessor.getBytes().length);
     
             InputStream in = s.getInputStream();
@@ -41,8 +44,10 @@ public class CheckPredecessorTask implements Runnable{
             in.read(response, 0, response.length);
     
         } catch (Exception e) {
-            ChordPeer.setPredecessor(null);
+            ChordPeer.getChordLayer().setPredecessor(null);
             System.out.println("Predecessor Offline");
+
+            ChordPeer.getThreadPool().scheduleWithFixedDelay(new CheckPredecessorTask(), 5, 20, TimeUnit.SECONDS);
         } 
     }
 

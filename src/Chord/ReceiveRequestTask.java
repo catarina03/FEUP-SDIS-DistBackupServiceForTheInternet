@@ -1,3 +1,6 @@
+ 
+
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -17,11 +20,13 @@ public class ReceiveRequestTask implements Runnable{
         InputStream in;
         try {
             in = socket.getInputStream();
-            byte[] requestReceived = new byte[256];
+            byte[] requestReceived = new byte[11000];
 
-            in.read(requestReceived, 0, requestReceived.length);
+            int bytesRead = in.read(requestReceived, 0, requestReceived.length);
+            ByteArrayOutputStream baos = new ByteArrayOutputStream(11000);
+            baos.write(requestReceived, 0, bytesRead);
             
-            Message request = new Message(requestReceived);
+            Message request = new Message(baos.toByteArray());
 
             String response = request.resolve();
 

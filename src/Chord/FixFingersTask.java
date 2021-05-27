@@ -1,3 +1,5 @@
+ 
+
 public class FixFingersTask implements Runnable{
 
     public FixFingersTask(){        
@@ -6,18 +8,17 @@ public class FixFingersTask implements Runnable{
     @Override
     public void run() {
 
-        for(int i = 1; i <= 16; i++){
+        for(int i = 1; i <= ChordPeer.getIdBits(); i++){
+            int fingerStart = (int) ((ChordPeer.getId() + Math.pow(2, i - 1)) % Math.pow(2, ChordPeer.getIdBits()));
+            String[] successorResponse = ChordPeer.getChordLayer().findSuccessor(fingerStart).split(" ");
 
-            int fingerStart = (int) ((ChordPeer.getId() + Math.pow(2, i - 1)) % Math.pow(2, 8));
-            String[] successorResponse = ChordPeer.findSuccessor(fingerStart).split(" ");
+            ChordNode successor = new ChordNode(Integer.parseInt(successorResponse[1].trim()), successorResponse[2].trim(), successorResponse[3].trim());
 
-            ChordNode successor = new ChordNode(Integer.parseInt(successorResponse[2].trim()), successorResponse[3].trim(), successorResponse[4].trim());
-
-            ChordPeer.setFingerAtIndex((int) (Math.pow(2, i - 1)), successor);
+            ChordPeer.getChordLayer().setFingerAtIndex((int) (Math.pow(2, i - 1)), successor);
 
         }
 
-        ChordPeer.printFingerTable();
+        ChordPeer.getChordLayer().printFingerTable();
     }
     
 }

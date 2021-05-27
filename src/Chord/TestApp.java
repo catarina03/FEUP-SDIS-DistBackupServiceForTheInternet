@@ -1,7 +1,6 @@
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 
-
 public class TestApp {
 
     private TestApp() {}
@@ -20,9 +19,40 @@ public class TestApp {
 
         try {
             Registry registry = LocateRegistry.getRegistry();
-            PeerClientTest stub = (PeerClientTest) registry.lookup(remoteObjectName);
-            String response = stub.testCommunication(args[1]);
+            PeerClientInterface stub = (PeerClientInterface) registry.lookup(remoteObjectName);
+            String response = "";
             
+            switch(args[1].trim()){
+                // Start File Backup Protocol
+                case "BACKUP":
+                    response = stub.backup(args[2], Integer.valueOf(args[3].trim()));
+                    System.out.println(response);
+                    break;
+
+                // // Start Restore File Protocol
+                // case "RESTORE":
+                //     response = stub.restore(args[2]);
+                //     System.out.println(response);
+                //     break;
+
+                // // Start Delete File Protocol
+                // case "DELETE":
+                //     response = stub.delete(args[2]);
+                //     System.out.println(response);
+                //     break;
+
+                // // Start Space Reclaim Protocol
+                // case "RECLAIM":
+                //     response = stub.reclaim(args[2]);
+                //     System.out.println(response);
+                //     break;
+
+                // // Start Peer State Protocol
+                // case "STATE":
+                //     response = stub.state();
+                //     System.out.println(response);
+                //     break;
+            }
         } catch (Exception e) {
             System.err.println("Client exception: " + e.toString());
             e.printStackTrace();
