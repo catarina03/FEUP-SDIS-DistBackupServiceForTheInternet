@@ -4,7 +4,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 
 
@@ -14,20 +13,14 @@ public class PeerFolder {
     private ArrayList<FileData> filesBackedUp;
 
     /*
-        key --> File ID
-        Value --> ID of the Peer who stored it
-    */
-    private ConcurrentHashMap<String, ChordNode> fileLocation;
-
-    /*
-        key --> File ID
+        key --> File Path
         Value --> File Data
     */
     private ConcurrentHashMap<String, FileData> storedFiles;
 
     /*
         key --> File Path
-        Value --> File Data
+        Value --> Nodes who backupd the File
     */
     private ConcurrentHashMap<String, ArrayList<ChordNode>> backupNodes;
     
@@ -45,7 +38,6 @@ public class PeerFolder {
         }
 
         filesBackedUp = new ArrayList<>();
-        fileLocation = new ConcurrentHashMap<>();
         storedFiles = new ConcurrentHashMap<>();
         backupNodes= new ConcurrentHashMap<>();
         storageSize = 1000000;
@@ -96,13 +88,6 @@ public class PeerFolder {
      */
     public String getPath(){
         return peerFolder.toString();
-    }
-
-    /**
-     * @return HashMap of the file locations
-     */
-    public ConcurrentHashMap<String, ChordNode> getFileLocation() {
-        return fileLocation;
     }
 
     /**
@@ -179,11 +164,11 @@ public class PeerFolder {
 
     /**
      * Check if a certain file is saved in the folder
-     * @param fileID - id of the file
+     * @param filePath - id of the file
      * @return true if the file is saved, false otherwise
      */
-    public boolean fileIsStored(String fileID){
-        return storedFiles.containsKey(fileID);
+    public boolean fileIsStored(String filePath){
+        return storedFiles.containsKey(filePath);
     }
 
     /**
@@ -202,20 +187,13 @@ public class PeerFolder {
     }
 
     /**
-     * Check if a certain file is saved with its pathn
+     * Check if a certain file is saved with its path
      * @param pathname - path of the file
      * @return  true if the file is saved, false otherwise
      */
     public boolean fileIsStoredPathname(String pathname){
-        Collection<FileData> collection = storedFiles.values();
 
-        for(FileData file : collection){
-            if(file.getFilePath().equals(pathname)){
-                return true;
-            }
-        }
-
-        return false;
+        return storedFiles.containsKey(pathname);
     }
 
     /**
@@ -224,14 +202,6 @@ public class PeerFolder {
      */
     public void addFile(FileData file){
         filesBackedUp.add(file);
-    }
-
-    /**
-     * Adds a file location
-     * @param file - file to be stored
-     */
-    public void addFileLocation(String fileID, ChordNode node){
-        fileLocation.put(fileID, node);
     }
 
     /**
@@ -251,20 +221,21 @@ public class PeerFolder {
 
     /**
      * Stores a file
+     * @param filePath - path of the file to be saved
      * @param file - file to be stored
      */
-    public void storeFile(String fileID, FileData file){
-        storedFiles.put(fileID, file);
+    public void storeFile(String filePath, FileData file){
+        storedFiles.put(filePath, file);
 
         storageUsed += file.getFileSize();
     }
 
     /**
      * Saves a chunk into the array and saves it into the peer folder
-     * @param fileID - id of the file to which the chunk belongs
+     * @param filePath - path of the file to which the chunk belongs
      * @param chunk - chunkToBeSaved
      */
-    public void saveChunk(String fileID, Chunk chunk){
-        storedFiles.get(fileID).addChunk(chunk);
+    public void saveChunk(String filePath, Chunk chunk){
+        storedFiles.get(filePath).addChunk(chunk);
     }
 }

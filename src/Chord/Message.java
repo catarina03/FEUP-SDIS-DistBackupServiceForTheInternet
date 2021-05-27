@@ -89,6 +89,7 @@ public class Message{
         return "";
         
     }
+
     private String saveFile(){
 
         // If file already saved or is already trying to save a file, it can't save another file
@@ -101,10 +102,10 @@ public class Message{
         // If it has space and the file is not stored, it can be stored
         if((ChordPeer.getFolder().getStorageUsed() + Integer.parseInt(header[4].trim()) < ChordPeer.getFolder().getStorageSize()) && !ChordPeer.getFolder().fileIsStoredPathname(header[5].trim())){
             FileData storedFile = new FileData(header[1].trim(), Integer.parseInt(header[2].trim()), Integer.parseInt(header[3].trim()), header[5].trim());
-            ChordPeer.getFolder().storeFile(storedFile.getID(), storedFile);
+            ChordPeer.getFolder().storeFile(header[5].trim(), storedFile);
             
             ChordPeer.setSavingFile(false);
-
+            System.out.println("Stored File");
             return "SAVED NULL";
         }
 
@@ -157,7 +158,7 @@ public class Message{
     private void saveFileChunk(){
         Chunk chunkToStore = new Chunk(Integer.parseInt(header[2].trim()), body.length, body, header[1].trim());
 
-        ChordPeer.getFolder().saveChunk(chunkToStore.getFileID(), chunkToStore);
+        ChordPeer.getFolder().saveChunk(header[3].trim(), chunkToStore);
 
     }
 
@@ -170,7 +171,7 @@ public class Message{
         Collections.sort(fileChunks);
 
         // Write the chunks into the file 
-        try (FileOutputStream fos = new FileOutputStream(ChordPeer.getFolder().getPath()+"/" + file.getFileName())){
+        try (FileOutputStream fos = new FileOutputStream(ChordPeer.getFolder().getPath()+ "/" + file.getFileName())){
             for(Chunk c : fileChunks){
                 fos.write(c.getData());
             }
