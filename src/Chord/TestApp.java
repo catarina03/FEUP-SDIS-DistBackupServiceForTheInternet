@@ -35,11 +35,11 @@ public class TestApp {
                 //     System.out.println(response);
                 //     break;
 
-                // // Start Delete File Protocol
-                // case "DELETE":
-                //     response = stub.delete(args[2]);
-                //     System.out.println(response);
-                //     break;
+                // Start Delete File Protocol
+                case "DELETE":
+                    response = stub.delete(args[2]);
+                    System.out.println(response);
+                    break;
 
                 // // Start Space Reclaim Protocol
                 // case "RECLAIM":

@@ -5,6 +5,7 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
+import java.util.ArrayList;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -116,7 +117,7 @@ public class ChordPeer implements PeerClientInterface{
     @Override
     public String backup(String filePath, int repDegree) throws RemoteException {
         System.out.println("Received Backup Request of file " + filePath);
-        
+        //TODO: avisar o succesor que este node está responsavel pelos ficheiros
         for(int i = 0; i < repDegree; i++){
             // Create a file and save it in the folder
             FileData newFile = new FileData(filePath, repDegree, i);
@@ -169,7 +170,7 @@ public class ChordPeer implements PeerClientInterface{
         for(int i = 0; i < newFile.getTotalChunks(); i++){
 
             // Create the header and body of the message
-            String header ="PUTCHUNK " + newFile.getID() + " " + i + " " + newFile.getReplicationDegree() + " " + newFile.getChunk(i).getData().length + " \r\n\r\n";
+            String header ="PUTCHUNK " + newFile.getID() + " " + i + " " + newFile.getFilePath() + " \r\n\r\n";
             byte[] body = newFile.getChunk(i).getData();
             byte[] headerBytes = header.getBytes();
 
@@ -193,7 +194,7 @@ public class ChordPeer implements PeerClientInterface{
             }
         }
 
-        String fileSavedMessage = "SAVECOMPLETED " + newFile.getID() + " \r\n\r\n";
+        String fileSavedMessage = "SAVECOMPLETED " + newFile.getFilePath() + " \r\n\r\n";
         RequestSender savesFileRequest = new RequestSender(successor.getAddress(), "" + successor.getPortNumber(), fileSavedMessage, chordLayer.getCipherSuites(), false);
 
         try {
@@ -203,7 +204,50 @@ public class ChordPeer implements PeerClientInterface{
         }
         
         System.out.println("File backup in peer: " + successor.getPortNumber());
-        folder.addBackupNode(newFile.getFilePath(), successor);
+        System.out.println("Saving file with path: " + newFile.getFilePath());
+        folder.addFileLocation(newFile, successor);
+    }
+
+    /**
+     * Ask other peers to delete all the chunks of a certain file
+     * @param filePath - path of the file to be deleted
+     * @return "done" if success
+     */
+    @Override
+    public String delete(String filePath){
+        System.out.println("Deleting file " + filePath);
+        // Check if the file is saved
+        if(folder.fileIsSavedPathname(filePath)){
+            ArrayList<ChordNode> nodes = ChordPeer.getFolder().getFileLocation(filePath);
+
+            for(ChordNode node : nodes){
+                // Create the message
+                String message = "DELETE " + filePath + " \r\n\r\n";
+                
+                // Send the message
+                RequestSender deleteRequest = new RequestSender(node.getAddress(), "" + node.getPortNumber(), message, ChordPeer.getChordLayer().getCipherSuites(), true);
+
+                try {
+                    deleteRequest.send();
+                } catch (Exception e) {
+                    System.out.println("Node didn't response to delete request. Removing it");
+                    ChordPeer.getChordLayer().dealWithNodeFailure(node.getAddress(), node.getPortNumber());
+
+
+                }
+
+                System.out.println("Deleting backup of file " + folder.getFile(filePath).getName() + " from peer " + node.getId());
+            }
+
+
+            ChordPeer.getFolder().deleteFileLocation(filePath);
+            ChordPeer.getFolder().removeFile(filePath);
+            
+        } else {
+            System.out.println("File was never backed up...");
+        }
+
+        return "done";
     }
 
 

@@ -4,7 +4,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 
@@ -14,22 +15,16 @@ public class PeerFolder {
     private ArrayList<FileData> filesBackedUp;
 
     /*
-        key --> File ID
-        Value --> ID of the Peer who stored it
-    */
-    private ConcurrentHashMap<String, ChordNode> fileLocation;
-
-    /*
-        key --> File ID
+        key --> File Path
         Value --> File Data
     */
     private ConcurrentHashMap<String, FileData> storedFiles;
 
     /*
-        key --> File Path
-        Value --> File Data
+        key --> FileData
+        Value --> Node where the file is stored
     */
-    private ConcurrentHashMap<String, ArrayList<ChordNode>> backupNodes;
+    private ConcurrentHashMap<FileData, ChordNode> fileLocation;
     
     public PeerFolder(String peerID){
         try {
@@ -45,9 +40,8 @@ public class PeerFolder {
         }
 
         filesBackedUp = new ArrayList<>();
-        fileLocation = new ConcurrentHashMap<>();
         storedFiles = new ConcurrentHashMap<>();
-        backupNodes= new ConcurrentHashMap<>();
+        fileLocation = new ConcurrentHashMap<>();
         storageSize = 1000000;
         storageUsed = 0;
     }
@@ -67,14 +61,19 @@ public class PeerFolder {
     }
 
     /**
+     * Get a specific file stored in the folder
+     * @param filePath - path of the file to be retrieved
+     * @return null if the file isn't stored, or the file with the path given
+     */
+    public FileData getStoredFile(String filePath){
+        return storedFiles.get(filePath);
+    }
+
+    /**
      * @return array containing the files stored in the folder
      */
     public ArrayList<FileData> getFilesBackedUp(){
         return filesBackedUp;
-    }
-
-    public ConcurrentHashMap<String, ArrayList<ChordNode>> getBackupNodes() {
-        return backupNodes;
     }
 
     /**
@@ -99,19 +98,19 @@ public class PeerFolder {
     }
 
     /**
-     * @return HashMap of the file locations
-     */
-    public ConcurrentHashMap<String, ChordNode> getFileLocation() {
-        return fileLocation;
-    }
-
-    /**
      * @return HashMap of the stored files
      */
     public ConcurrentHashMap<String, FileData> getStoredFiles() {
         return storedFiles;
     }
 
+    /**
+     * @return HashMap of the stored files
+     */
+    public ConcurrentHashMap<FileData, ChordNode> getFileLocation() {
+        return fileLocation;
+    }
+    
     /**
      * Changes the storage size
      * @param new storage size
@@ -148,6 +147,43 @@ public class PeerFolder {
         return null;
     }
 
+     /**
+     * Retrieves a  file stored by a specific node
+     * @param filePath - path of the file
+     * @param node - node that stored the file
+     * @return  return file
+     */
+    public FileData getFilebyNode(String filePath, ChordNode node){
+        Iterator<Map.Entry<FileData, ChordNode>> iterator = fileLocation.entrySet().iterator();
+
+        while(iterator.hasNext()){
+            Map.Entry<FileData, ChordNode> entry = iterator.next();
+            if(entry.getKey().getFilePath().equals(filePath) && node.getId() == entry.getValue().getId()){
+                return entry.getKey();
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Retrieves all  nodes that stored files with a specific filePath
+     * @param filePath - path of the file
+     * @return  return array containing all nodes
+     */
+    public ArrayList<ChordNode>  getFileLocation(String filePath){
+        Iterator<Map.Entry<FileData, ChordNode>> iterator = fileLocation.entrySet().iterator();
+        ArrayList<ChordNode> nodes = new ArrayList<>();
+        while(iterator.hasNext()){
+            Map.Entry<FileData, ChordNode> entry = iterator.next();
+            if(entry.getKey().getFilePath().equals(filePath)){
+                nodes.add(entry.getValue());
+            }
+        }
+        
+        return nodes;
+    }
+
     /**
      * Retrieves the number of chunks saved of a certain file
      * @param pathname of the file
@@ -178,15 +214,6 @@ public class PeerFolder {
     }
 
     /**
-     * Check if a certain file is saved in the folder
-     * @param fileID - id of the file
-     * @return true if the file is saved, false otherwise
-     */
-    public boolean fileIsStored(String fileID){
-        return storedFiles.containsKey(fileID);
-    }
-
-    /**
      * Check if a certain file is saved with its pathn
      * @param pathname - path of the file
      * @return  true if the file is saved, false otherwise
@@ -202,20 +229,22 @@ public class PeerFolder {
     }
 
     /**
-     * Check if a certain file is saved with its pathn
+     * Check if a certain file is saved in the folder
+     * @param filePath - id of the file
+     * @return true if the file is saved, false otherwise
+     */
+    public boolean fileIsStored(String filePath){
+        return storedFiles.containsKey(filePath);
+    }
+
+    /**
+     * Check if a certain file is saved with its path
      * @param pathname - path of the file
      * @return  true if the file is saved, false otherwise
      */
     public boolean fileIsStoredPathname(String pathname){
-        Collection<FileData> collection = storedFiles.values();
 
-        for(FileData file : collection){
-            if(file.getFilePath().equals(pathname)){
-                return true;
-            }
-        }
-
-        return false;
+        return storedFiles.containsKey(pathname);
     }
 
     /**
@@ -227,44 +256,70 @@ public class PeerFolder {
     }
 
     /**
-     * Adds a file location
-     * @param file - file to be stored
-     */
-    public void addFileLocation(String fileID, ChordNode node){
-        fileLocation.put(fileID, node);
-    }
-
-    /**
-     * Adds a node that has backed up a file with filePath
-     * @param filePath - path of the file which node backed up
+     * Adds a node that has backed up a file
+     * @param file - file which node backed up
      * @param node - node that stored the file
      */
-    public void addBackupNode(String filePath, ChordNode node){
-        if(backupNodes.containsKey(filePath)){
-            backupNodes.get(filePath).add(node);
-            return;
-        }
+    public void addFileLocation(FileData file, ChordNode node){
+        fileLocation.put(file, node);
 
-        backupNodes.put(filePath, new ArrayList<>());
-        backupNodes.get(filePath).add(node);
     }
 
     /**
      * Stores a file
+     * @param filePath - path of the file to be saved
      * @param file - file to be stored
      */
-    public void storeFile(String fileID, FileData file){
-        storedFiles.put(fileID, file);
+    public void storeFile(String filePath, FileData file){
+        storedFiles.put(filePath, file);
 
         storageUsed += file.getFileSize();
     }
 
     /**
      * Saves a chunk into the array and saves it into the peer folder
-     * @param fileID - id of the file to which the chunk belongs
+     * @param filePath - path of the file to which the chunk belongs
      * @param chunk - chunkToBeSaved
      */
-    public void saveChunk(String fileID, Chunk chunk){
-        storedFiles.get(fileID).addChunk(chunk);
+    public void saveChunk(String filePath, Chunk chunk){
+        storedFiles.get(filePath).addChunk(chunk);
+    }
+
+    /**
+     * Deletes all information about all files with a specific filePath
+     * @param filePath - path of the file
+     */
+    public void  deleteFileLocation(String filePath){
+        Iterator<Map.Entry<FileData, ChordNode>> iterator = fileLocation.entrySet().iterator();
+
+        while(iterator.hasNext()){
+            Map.Entry<FileData, ChordNode> entry = iterator.next();
+            if(entry.getKey().getFilePath().equals(filePath)){
+                fileLocation.remove(entry.getKey());
+            }
+        }
+    }
+
+    /**
+     * Delete stored file information from storedFiles of a file that has been deleted
+     * @param filePath - path of the file tha has been deleted
+     */
+    public void deleteStoredFile(String filePath){
+        storedFiles.remove(filePath);
+    }
+
+    /**
+     * Removes a file from storage
+     * @param filePath - path of the file to be removed
+     */
+    public void removeFile(String filePath){
+        Iterator<FileData> iter = filesBackedUp.iterator();
+
+        while(iter.hasNext()){
+            FileData file = iter.next();
+            if(file.getFilePath().equals(filePath)){
+                filesBackedUp.remove(file);
+            }
+        }
     }
 }
