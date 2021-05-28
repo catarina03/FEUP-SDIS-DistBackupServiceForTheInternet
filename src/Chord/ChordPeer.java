@@ -117,7 +117,7 @@ public class ChordPeer implements PeerClientInterface{
     @Override
     public String backup(String filePath, int repDegree) throws RemoteException {
         System.out.println("Received Backup Request of file " + filePath);
-        
+        //TODO: avisar o succesor que este node está responsavel pelos ficheiros
         for(int i = 0; i < repDegree; i++){
             // Create a file and save it in the folder
             FileData newFile = new FileData(filePath, repDegree, i);
@@ -205,7 +205,7 @@ public class ChordPeer implements PeerClientInterface{
         
         System.out.println("File backup in peer: " + successor.getPortNumber());
         System.out.println("Saving file with path: " + newFile.getFilePath());
-        folder.addBackupNode(newFile.getFilePath(), successor);
+        folder.addFileLocation(newFile, successor);
     }
 
     /**
@@ -218,7 +218,7 @@ public class ChordPeer implements PeerClientInterface{
         System.out.println("Deleting file " + filePath);
         // Check if the file is saved
         if(folder.fileIsSavedPathname(filePath)){
-            ArrayList<ChordNode> nodes = ChordPeer.getFolder().getBackupNodes().get(filePath);
+            ArrayList<ChordNode> nodes = ChordPeer.getFolder().getFileLocation(filePath);
 
             for(ChordNode node : nodes){
                 // Create the message
@@ -240,7 +240,8 @@ public class ChordPeer implements PeerClientInterface{
             }
 
 
-            ChordPeer.getFolder().deleteBackupFile(filePath);
+            ChordPeer.getFolder().deleteFileLocation(filePath);
+            ChordPeer.getFolder().removeFile(filePath);
             
         } else {
             System.out.println("File was never backed up...");
