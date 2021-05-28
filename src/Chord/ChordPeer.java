@@ -209,6 +209,64 @@ public class ChordPeer implements PeerClientInterface{
     }
 
     /**
+     * Ask other peers for each chunk of a file so that it can be restored
+     * @param filePath - path of the file to be restored
+     * @param repDegree - desired replication degree of the file
+     * @return "done" if success
+     */
+    @Override
+    public String restore(String filePath) throws RemoteException {
+
+        // Check if the file was stored in this peer
+        if(ChordPeer.getFolder().fileIsSavedPathname(filePath)){
+            ArrayList<ChordNode> nodes = ChordPeer.getFolder().getFileLocation(filePath);
+
+            int nodeIndex = 0;
+
+            ChordNode fileLocation = nodes.get(nodeIndex);
+            
+            FileData file = ChordPeer.getFolder().getFilebyNode(filePath, fileLocation);
+
+            // For each chunk, send a message requesting the chunk
+            for(int i = 0 ; i < file.getTotalChunks(); i ++){
+                // Create the message
+                String message = "GETCHUNK " + file.getFilePath() + " " + i + " \r\n\r\n";
+
+                RequestSender restoreChunkRequest = new RequestSender(fileLocation.getAddress(), "" + fileLocation.getPortNumber(), message, ChordPeer.getChordLayer().getCipherSuites(), true);
+
+                try {
+                    Message restoredChunkInfo = new Message(restoreChunkRequest.send());
+
+                    restoredChunkInfo.resolve();
+                } catch (Exception e) {
+                    ChordPeer.getChordLayer().dealWithNodeFailure(fileLocation.getAddress(), fileLocation.getPortNumber());
+                    ChordPeer.getFolder().deleteFileLocation(file);
+
+                    nodeIndex++;
+
+                    if(nodeIndex == nodes.size()){
+                        ChordPeer.getFolder().setFileToRestore(new ArrayList<>());
+                        System.out.println("Can't restore for all the peer who had the file went offline");
+                    }
+
+                    fileLocation = nodes.get(nodeIndex);
+                    file = ChordPeer.getFolder().getFilebyNode(filePath, fileLocation);
+                    i--;
+                }
+                
+            }
+
+            ChordPeer.getFolder().restoreFile(file.getFileName());
+
+            System.out.println("File restored");
+        } else {
+            System.out.println("File was never backed up...");
+        }
+
+        return "done";
+    }
+
+    /**
      * Ask other peers to delete all the chunks of a certain file
      * @param filePath - path of the file to be deleted
      * @return "done" if success
@@ -240,7 +298,7 @@ public class ChordPeer implements PeerClientInterface{
             }
 
 
-            ChordPeer.getFolder().deleteFileLocation(filePath);
+            ChordPeer.getFolder().deleteFileLocations(filePath);
             ChordPeer.getFolder().removeFile(filePath);
             
         } else {

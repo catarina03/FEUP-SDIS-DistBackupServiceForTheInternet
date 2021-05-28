@@ -53,44 +53,53 @@ public class Message{
 
     }
 
-    public String resolve(){
+    public byte[] resolve(){
 
         // Parse the operation to be executed
         switch (header[0].trim()) {
             case "FINDSUCCESSOR":
-                    return ChordPeer.getChordLayer().findSuccessor(Integer.parseInt(header[1].trim()));
+                    return ChordPeer.getChordLayer().findSuccessor(Integer.parseInt(header[1].trim())).getBytes();
             case "SUCCESSOR":
                 ChordNode successor = new ChordNode(Integer.parseInt(header[1].trim()), header[2].trim(), header[3].trim());
                 ChordPeer.getChordLayer().setSuccessor(successor);
-                return "";
+                return null;
             case "GETPREDECESSOR":
+                String response;
                 if(ChordPeer.getChordLayer().getPredecessor() == null){
-                    return "PREDECESSOR NULL"; 
+                    response = "PREDECESSOR NULL"; 
                 }
-                return "PREDECESSOR " + ChordPeer.getChordLayer().getPredecessor().getId() + " " + ChordPeer.getChordLayer().getPredecessor().getAddress() + " " + ChordPeer.getChordLayer().getPredecessor().getPortNumber() + " " + " \r\n\r\n";
+                else{
+                    response = "PREDECESSOR " + ChordPeer.getChordLayer().getPredecessor().getId() + " " + ChordPeer.getChordLayer().getPredecessor().getAddress() + " " + ChordPeer.getChordLayer().getPredecessor().getPortNumber() + " " + " \r\n\r\n";
+                }
 
+                return response.getBytes();
             case "NOTIFY":
                 ChordPeer.getChordLayer().updatePredecessor(header[1].trim(), header[2].trim(), header[3].trim());
-                return "";
+                return null;
             case "CHECKCONNECTION":
-                return "ALIVE";
+                return "ALIVE".getBytes();
             case "SAVEFILE":
-                return saveFile();
+                return saveFile().getBytes();
             case "PUTCHUNK":
                 saveFileChunk();
-                return "STORED";
+                return "STORED".getBytes();
             case "SAVECOMPLETED":
                 locallySaveFile();
-                return "LOCALLYSAVED";
+                return "LOCALLYSAVED".getBytes();
+            case "GETCHUNK":
+                return restoreChunk();
+            case "RESTORECHUNK":
+                saveRestoredChunk();
+                return null;
             case "DELETE":
                 deleteFile();
-                return "DELETED";
+                return "DELETED".getBytes();
             default:
                 break;
             
         }
 
-        return "";
+        return null;
         
     }
 
@@ -163,7 +172,6 @@ public class Message{
         Chunk chunkToStore = new Chunk(Integer.parseInt(header[2].trim()), body.length, body, header[1].trim());
 
         ChordPeer.getFolder().saveChunk(header[3].trim(), chunkToStore);
-
     }
 
     private void locallySaveFile(){
@@ -185,6 +193,32 @@ public class Message{
             e.printStackTrace();
         }
         
+    }
+
+    private byte[] restoreChunk(){
+        String filePath = header[1].trim();
+        int chunkNr = Integer.parseInt(header[2].trim());
+
+        Chunk chunkToSend = ChordPeer.getFolder().getStoredFile(filePath).getChunk(chunkNr);
+       
+        // Create the header and body of the message
+        String header ="RESTORECHUNK " + chunkToSend.getFileID() + " " + chunkToSend.getNumber() + " \r\n\r\n";
+        byte[] body = chunkToSend.getData();
+        byte[] headerBytes = header.getBytes();
+        
+        // Join the header and the boddy into an array
+        byte[] restoreChunkMessage = new byte[headerBytes.length + body.length];
+        System.arraycopy(headerBytes, 0, restoreChunkMessage, 0, headerBytes.length);
+        System.arraycopy(body, 0, restoreChunkMessage, headerBytes.length, body.length);
+
+        return restoreChunkMessage;
+
+    }
+
+    private void saveRestoredChunk(){
+        Chunk chunkToRestore = new Chunk(Integer.parseInt(header[2].trim()), body.length, body, header[1].trim());
+
+        ChordPeer.getFolder().restoreChunk(chunkToRestore);
     }
 
     private void deleteFile(){

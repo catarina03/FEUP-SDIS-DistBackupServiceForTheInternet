@@ -28,14 +28,14 @@ public class ReceiveRequestTask implements Runnable{
             
             Message request = new Message(baos.toByteArray());
 
-            String response = request.resolve();
+            byte[] response = request.resolve();
 
-            if(response.equals("")){
+            if(response == null){
                 return;
             }
 
             OutputStream out = socket.getOutputStream();
-            out.write(response.getBytes(), 0, response.getBytes().length);
+            out.write(response, 0, response.length);
 
         } catch (IOException e) {
 

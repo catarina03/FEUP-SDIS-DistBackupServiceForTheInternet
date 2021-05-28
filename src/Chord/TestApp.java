@@ -29,11 +29,11 @@ public class TestApp {
                     System.out.println(response);
                     break;
 
-                // // Start Restore File Protocol
-                // case "RESTORE":
-                //     response = stub.restore(args[2]);
-                //     System.out.println(response);
-                //     break;
+                // Start Restore File Protocol
+                case "RESTORE":
+                    response = stub.restore(args[2]);
+                    System.out.println(response);
+                    break;
 
                 // Start Delete File Protocol
                 case "DELETE":

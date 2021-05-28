@@ -1,9 +1,11 @@
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -13,6 +15,7 @@ public class PeerFolder {
     private Path peerFolder;
     private int storageSize, storageUsed;
     private ArrayList<FileData> filesBackedUp;
+    private ArrayList<Chunk> fileToRestore;
 
     /*
         key --> File Path
@@ -44,6 +47,7 @@ public class PeerFolder {
         fileLocation = new ConcurrentHashMap<>();
         storageSize = 1000000;
         storageUsed = 0;
+        fileToRestore = new ArrayList<>();
     }
 
     /**
@@ -65,7 +69,7 @@ public class PeerFolder {
      * @param filePath - path of the file to be retrieved
      * @return null if the file isn't stored, or the file with the path given
      */
-    public FileData getStoredFile(String filePath){
+    public FileData getStoredFiles(String filePath){
         return storedFiles.get(filePath);
     }
 
@@ -88,6 +92,13 @@ public class PeerFolder {
      */
     public int getStorageUsed(){
         return storageUsed;
+    }
+
+    /**
+     * @return file to restore
+     */
+    public ArrayList<Chunk> getFileToRestore() {
+        return fileToRestore;
     }
 
     /**
@@ -120,6 +131,14 @@ public class PeerFolder {
     }
 
     /**
+     * Changes the file to restore
+     * @param fileToRestore - new file to restore
+     */
+    public void setFileToRestore(ArrayList<Chunk> fileToRestore) {
+        this.fileToRestore = fileToRestore;
+    }
+
+    /**
      * Retrieves the ID of a  file saved by its path
      * @param filePath - path of the file to get the ID
      * @return  return the ID of the file
@@ -145,6 +164,10 @@ public class PeerFolder {
             }
         }
         return null;
+    }
+
+    public FileData getStoredFile(String filePath){
+        return storedFiles.get(filePath);
     }
 
      /**
@@ -286,10 +309,36 @@ public class PeerFolder {
     }
 
     /**
+     * Restores a chunk from a file
+     * @param chunk - chunkToBeSaved
+     */
+    public void restoreChunk(Chunk chunk){
+        fileToRestore.add(chunk);
+    }
+
+    /**
+     * Physically restores the file into the peer folder
+     */
+    public void restoreFile(String fileName){
+        Collections.sort(fileToRestore);
+
+        // Write the chunks into the file 
+        try (FileOutputStream fos = new FileOutputStream(peerFolder.toString() + "/" + fileName)){
+            for(Chunk c : fileToRestore){
+                fos.write(c.getData());
+            }
+            fos.close(); //There is no more need for this line since you had created the instance of "fos" inside the try. And this will automatically close the OutputStream
+        }
+        catch(Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    /**
      * Deletes all information about all files with a specific filePath
      * @param filePath - path of the file
      */
-    public void  deleteFileLocation(String filePath){
+    public void  deleteFileLocations(String filePath){
         Iterator<Map.Entry<FileData, ChordNode>> iterator = fileLocation.entrySet().iterator();
 
         while(iterator.hasNext()){
@@ -298,6 +347,14 @@ public class PeerFolder {
                 fileLocation.remove(entry.getKey());
             }
         }
+    }
+
+    /**
+     * Deletes the information about a file
+     * @param fileToDelete - file to remove
+     */
+    public void  deleteFileLocation(FileData fileToDelete){
+        fileLocation.remove(fileToDelete);
     }
 
     /**
