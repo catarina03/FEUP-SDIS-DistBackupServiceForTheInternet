@@ -166,6 +166,20 @@ public class PeerFolder {
         return null;
     }
 
+    /**
+     * Retrieves the file of a  file saved by its id
+     * @param fileID - id of the file
+     * @return  return the  file
+     */
+    public FileData getFilebyID(String fileID){
+        for(int i = 0; i < filesBackedUp.size(); i++){
+            if(filesBackedUp.get(i).getID().equals(fileID)){
+                return filesBackedUp.get(i);
+            }
+        }
+        return null;
+    }
+
     public FileData getStoredFile(String filePath){
         return storedFiles.get(filePath);
     }
@@ -362,6 +376,15 @@ public class PeerFolder {
      * @param filePath - path of the file tha has been deleted
      */
     public void deleteStoredFile(String filePath){
+        FileData file = storedFiles.get(filePath);
+
+        File fileToDelete = new File(ChordPeer.getFolder().getPath()+ "/" + file.getFileName());
+        if(fileToDelete.delete()){
+            System.out.println("Deleted file " + file.getID() + " with path " + ChordPeer.getFolder().getPath()+ "/" + file.getFileName());
+        }
+
+        storageUsed -= file.getFileSize();
+        
         storedFiles.remove(filePath);
     }
 
@@ -376,6 +399,22 @@ public class PeerFolder {
             FileData file = iter.next();
             if(file.getFilePath().equals(filePath)){
                 filesBackedUp.remove(file);
+            }
+        }
+    }
+
+    /**
+     * Removes a file from storage
+     * @param fileID - id of the file to be removed
+     */
+    public void removeFileByID(String fileID){
+        Iterator<FileData> iter = filesBackedUp.iterator();
+
+        while(iter.hasNext()){
+            FileData file = iter.next();
+            if(file.getID().equals(fileID)){
+                filesBackedUp.remove(file);
+                return;
             }
         }
     }

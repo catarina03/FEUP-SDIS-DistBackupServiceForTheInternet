@@ -41,11 +41,11 @@ public class TestApp {
                     System.out.println(response);
                     break;
 
-                // // Start Space Reclaim Protocol
-                // case "RECLAIM":
-                //     response = stub.reclaim(args[2]);
-                //     System.out.println(response);
-                //     break;
+                // Start Space Reclaim Protocol
+                case "RECLAIM":
+                    response = stub.reclaim(args[2]);
+                    System.out.println(response);
+                    break;
 
                 // // Start Peer State Protocol
                 // case "STATE":
