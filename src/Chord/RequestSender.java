@@ -1,3 +1,4 @@
+import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Arrays;
@@ -58,12 +59,13 @@ public class RequestSender{
 
         InputStream in = s.getInputStream();
         
-        byte[] response = new byte[65000];
-        int bytesRead = in.read(response, 0, response.length);
+        byte[] response = new byte[11000];
 
-        // Get the data in an array of appropriate size
-        byte[] responseData = Arrays.copyOf(response, bytesRead);
-        return responseData;
+        int bytesRead = in.read(response, 0, response.length);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream(11000);
+        baos.write(response, 0, bytesRead);
+
+        return baos.toByteArray();
 
     }
 
