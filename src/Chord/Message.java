@@ -1,6 +1,3 @@
- 
-
-import java.io.File;
 import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -170,7 +167,7 @@ public class Message{
 
 
         ChordPeer.setSavingFile(false);
-
+        System.out.println("SAVED " + successor.getId() + " " + successor.getAddress() + " " + successor.getPortNumber());
         // Respond with a message telling who stored the file
         return "SAVED " + successor.getId() + " " + successor.getAddress() + " " + successor.getPortNumber();
     }

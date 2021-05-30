@@ -123,7 +123,7 @@ public class ChordPeer implements PeerClientInterface{
         for(int i = 0; i < repDegree; i++){
             // Create a file and save it in the folder
             FileData newFile = new FileData(filePath, repDegree, i);
-            folder.addFile(newFile);
+            folder.addFile(newFile.getID(), newFile);
 
             saveFile(newFile);
         }
@@ -190,7 +190,7 @@ public class ChordPeer implements PeerClientInterface{
             return;
         }
 
-        System.out.println("Storing file with id " + newFile.getID() + " in peer " + successor.getId());
+        System.out.println("Storing file with id " + newFile.getID() + " in peer " + successor.getId() + " with port " + successor.getPortNumber() + " address" + successor.getAddress());
 
         // Iterate over the chunks, sending a message for each one thourgh the multicast channel
         for(int i = 0; i < newFile.getTotalChunks(); i++){

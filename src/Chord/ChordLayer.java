@@ -121,7 +121,7 @@ public class ChordLayer {
     }
 
     public void dealWithNodeFailure(String nodeAddres, int nodePort){
-
+        System.out.println("Node " + nodePort + " has failed.");
         Iterator<Map.Entry<Integer, ChordNode>> iter = ChordLayer.fingerTable.entrySet().iterator();
 
         while(iter.hasNext()){
