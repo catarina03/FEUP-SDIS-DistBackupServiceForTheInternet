@@ -6,6 +6,8 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -121,7 +123,7 @@ public class ChordPeer implements PeerClientInterface{
         for(int i = 0; i < repDegree; i++){
             // Create a file and save it in the folder
             FileData newFile = new FileData(filePath, repDegree, i);
-            folder.addFile(newFile);
+            folder.addFile(newFile.getID(), newFile);
 
             saveFile(newFile);
         }
@@ -131,6 +133,7 @@ public class ChordPeer implements PeerClientInterface{
 
     public static void saveFile(FileData newFile){
         
+        // Check who will save the file
         String[] successorResponse = ChordPeer.getChordLayer().findSuccessor(Integer.parseInt(newFile.getID())).split(" ");
         ChordNode successor = new ChordNode(Integer.parseInt(successorResponse[1].trim()), successorResponse[2].trim(), successorResponse[3].trim());
 
@@ -143,11 +146,13 @@ public class ChordPeer implements PeerClientInterface{
                 successor = ChordPeer.getChordLayer().getSuccessor();
                 if(successor == null || successor.getId() == id){
                     System.out.println("File cannot be saved because i'm alone");
+                    ChordPeer.getFolder().removeFileByID(newFile.getID());
                     return;
                 }
             }
         }
 
+        // Ask if the peer can save the file
         String saveFileMessage = "SAVEFILE " + newFile.getID() + " " + newFile.getTotalChunks() + " " + newFile.getReplicationDegree() + " " + newFile.getFileSize() + " " + newFile.getFilePath() + " \r\n\r\n";
 
         RequestSender saveFileRequest = new RequestSender(successor.getAddress(), "" + successor.getPortNumber(), saveFileMessage, chordLayer.getCipherSuites(), true);
@@ -156,15 +161,36 @@ public class ChordPeer implements PeerClientInterface{
             String[] response = new String(saveFileRequest.send()).split(" ");
             if(response[0].equals("NOTSAVED")){
                 System.out.println("File cannot be saved for there are no nodes that can save the file");
+                ChordPeer.getFolder().removeFileByID(newFile.getID());
                 return;
             }
             else if(!response[1].equals("NULL")){
                 successor = new ChordNode(Integer.parseInt(response[1]), response[2], response[3].trim());
             }
         } catch (Exception e) {
+            chordLayer.dealWithNodeFailure(successor.getAddress(), successor.getPortNumber());
+                
+            saveFile(newFile);
+
+            return;
         }
 
-        System.out.println("Storing file with id " + newFile.getID() + " in peer " + successor.getId());
+        // Tell the Peer that we initiated the backup process
+        String initiatorMessage = "INITIATOR " + newFile.getFilePath() + " " + ChordPeer.getId() + " " + ChordPeer.getChordLayer().getAddress() + " " + ChordPeer.getChordLayer().getPortNumber() + " \r\n\r\n";
+
+        RequestSender initiatorRequest = new RequestSender(successor.getAddress(), "" + successor.getPortNumber(), initiatorMessage, chordLayer.getCipherSuites(), false);
+        
+        try {
+            initiatorRequest.send();
+        } catch (Exception e1) {
+            chordLayer.dealWithNodeFailure(successor.getAddress(), successor.getPortNumber());
+                
+            saveFile(newFile);
+
+            return;
+        }
+
+        System.out.println("Storing file with id " + newFile.getID() + " in peer " + successor.getId() + " with port " + successor.getPortNumber() + " address" + successor.getAddress());
 
         // Iterate over the chunks, sending a message for each one thourgh the multicast channel
         for(int i = 0; i < newFile.getTotalChunks(); i++){
@@ -303,6 +329,55 @@ public class ChordPeer implements PeerClientInterface{
             
         } else {
             System.out.println("File was never backed up...");
+        }
+
+        return "done";
+    }
+
+    /**
+     * Reclaims the space used by the peer
+     * @param size - maximum space the peer can use
+     * @return "done" if success
+     */
+    @Override
+    public String reclaim(String size) throws RemoteException {
+        try{
+            // Set the peer total storage to the argument given
+            int maxSize = Integer.parseInt(size);
+            folder.setStorageSize(maxSize);
+            System.out.println("New filder Size: " + folder.getStorageSize() + " and i'm using " + folder.getStorageUsed());
+            // If the storage used is bigger then the total storage of a peer, the peer needs to delete files
+            if(folder.getStorageSize() < folder.getStorageUsed()){
+                Iterator<Map.Entry<String, FileData>> iterator = ChordPeer.getFolder().getStoredFiles().entrySet().iterator();
+
+                while(iterator.hasNext()){
+                    Map.Entry<String, FileData> entry = iterator.next();
+
+                    // Warn Initaitor Peer of the backup that one of the files was removed
+                    String removedMessage = "REMOVED " + entry.getValue().getID() + " \r\n\r\n";
+
+                    System.out.println(removedMessage);
+                    System.out.println("Sending to : " + entry.getValue().getInitiatorPeer().getPortNumber());
+                    RequestSender removedRequest = new RequestSender(entry.getValue().getInitiatorPeer().getAddress(), "" + entry.getValue().getInitiatorPeer().getPortNumber(), removedMessage, ChordPeer.getChordLayer().getCipherSuites(), false);
+                    
+                    try {
+                        removedRequest.send();
+                    } catch (Exception e) {
+                        System.out.println("Initiator peer went offline");
+                        ChordPeer.getChordLayer().dealWithNodeFailure(entry.getValue().getInitiatorPeer().getAddress(), entry.getValue().getInitiatorPeer().getPortNumber());
+                    }
+
+                    ChordPeer.getFolder().deleteStoredFile(entry.getKey());
+
+                     // If the storage size is bigger than the used, than the loop can break
+                     if(folder.getStorageSize() > folder.getStorageUsed()){
+                        break;
+                    }
+                }
+            }
+
+        }catch(NumberFormatException e){
+            return "Invalid number input";
         }
 
         return "done";

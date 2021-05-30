@@ -1,6 +1,3 @@
- 
-
-import java.io.File;
 import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -80,6 +77,10 @@ public class Message{
                 return "ALIVE".getBytes();
             case "SAVEFILE":
                 return saveFile().getBytes();
+            case "INITIATOR":
+                int nodeID = Integer.parseInt(header[2].trim());
+                ChordPeer.getFolder().getStoredFiles().get(header[1].trim()).setInitiatorPeer(new ChordNode(nodeID, header[3].trim(), header[4].trim()));
+                return null;
             case "PUTCHUNK":
                 saveFileChunk();
                 return "STORED".getBytes();
@@ -94,6 +95,9 @@ public class Message{
             case "DELETE":
                 deleteFile();
                 return "DELETED".getBytes();
+            case "REMOVED":
+                dealWithRemovedFile();
+                return null;
             default:
                 break;
             
@@ -114,7 +118,7 @@ public class Message{
 
         // If it has space and the file is not stored, it can be stored
         if((ChordPeer.getFolder().getStorageUsed() + Integer.parseInt(header[4].trim()) < ChordPeer.getFolder().getStorageSize()) && !ChordPeer.getFolder().fileIsStoredPathname(header[5].trim())){
-            FileData storedFile = new FileData(header[1].trim(), Integer.parseInt(header[2].trim()), Integer.parseInt(header[3].trim()), header[5].trim());
+            FileData storedFile = new FileData(header[1].trim(), Integer.parseInt(header[2].trim()), Integer.parseInt(header[3].trim()), header[4].trim(), header[5].trim());
             ChordPeer.getFolder().storeFile(header[5].trim(), storedFile);
             
             ChordPeer.setSavingFile(false);
@@ -163,7 +167,7 @@ public class Message{
 
 
         ChordPeer.setSavingFile(false);
-
+        System.out.println("SAVED " + successor.getId() + " " + successor.getAddress() + " " + successor.getPortNumber());
         // Respond with a message telling who stored the file
         return "SAVED " + successor.getId() + " " + successor.getAddress() + " " + successor.getPortNumber();
     }
@@ -222,14 +226,13 @@ public class Message{
     }
 
     private void deleteFile(){
-        FileData file = ChordPeer.getFolder().getStoredFile(header[1].trim());
-
-        File fileToDelete = new File(ChordPeer.getFolder().getPath()+ "/" + file.getFileName());
-        if(fileToDelete.delete()){
-            System.out.println("Deleted file " + file.getID() + " with path " + ChordPeer.getFolder().getPath()+ "/" + file.getFileName());
-        }
-
         ChordPeer.getFolder().deleteStoredFile(header[1].trim());
+    }
+
+    private void dealWithRemovedFile() {
+        FileData fileRemoved = ChordPeer.getFolder().getFilebyID(header[1].trim());
+        ChordPeer.getFolder().deleteFileLocation(fileRemoved);
+        ChordPeer.saveFile(fileRemoved);
     }
     
 }

@@ -14,7 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class PeerFolder {
     private Path peerFolder;
     private int storageSize, storageUsed;
-    private ArrayList<FileData> filesBackedUp;
+    private ConcurrentHashMap<String, FileData> filesBackedUp;
     private ArrayList<Chunk> fileToRestore;
 
     /*
@@ -42,7 +42,7 @@ public class PeerFolder {
             e1.printStackTrace();
         }
 
-        filesBackedUp = new ArrayList<>();
+        filesBackedUp = new ConcurrentHashMap<>();
         storedFiles = new ConcurrentHashMap<>();
         fileLocation = new ConcurrentHashMap<>();
         storageSize = 1000000;
@@ -56,11 +56,16 @@ public class PeerFolder {
      * @return null if the file isn't saved, or the file with the path given
      */
     public File getFile(String filePath){
-        for(int i = 0; i < filesBackedUp.size(); i++){
-            if(filesBackedUp.get(i).getFilePath().equals(filePath)){
-                return filesBackedUp.get(i).getFile();
+        Iterator<Map.Entry<String, FileData>> iter = filesBackedUp.entrySet().iterator();
+
+        while(iter.hasNext()){
+            Map.Entry<String, FileData> entry = iter.next();
+            FileData file = entry.getValue();
+            if(file.getFilePath().equals(filePath)){
+                return file.getFile();
             }
         }
+
         return null;
     }
 
@@ -76,7 +81,7 @@ public class PeerFolder {
     /**
      * @return array containing the files stored in the folder
      */
-    public ArrayList<FileData> getFilesBackedUp(){
+    public ConcurrentHashMap<String, FileData> getFilesBackedUp(){
         return filesBackedUp;
     }
 
@@ -139,31 +144,12 @@ public class PeerFolder {
     }
 
     /**
-     * Retrieves the ID of a  file saved by its path
-     * @param filePath - path of the file to get the ID
-     * @return  return the ID of the file
+     * Retrieves the file of a  file saved by its id
+     * @param fileID - id of the file
+     * @return  return the  file
      */
-    public String getFileIDbyPath(String filePath){
-        for(int i = 0; i < filesBackedUp.size(); i++){
-            if(filesBackedUp.get(i).getFilePath().equals(filePath)){
-                return filesBackedUp.get(i).getID();
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Retrieves the ID of a  file saved by its path
-     * @param filePath - path of the file to get the ID
-     * @return  return the ID of the file
-     */
-    public FileData getFilebyPath(String filePath){
-        for(int i = 0; i < filesBackedUp.size(); i++){
-            if(filesBackedUp.get(i).getFilePath().equals(filePath)){
-                return filesBackedUp.get(i);
-            }
-        }
-        return null;
+    public FileData getFilebyID(String fileID){
+        return filesBackedUp.get(fileID);
     }
 
     public FileData getStoredFile(String filePath){
@@ -208,32 +194,12 @@ public class PeerFolder {
     }
 
     /**
-     * Retrieves the number of chunks saved of a certain file
-     * @param pathname of the file
-     * @return number of chunks stored that belong to the file with pathname given
-     */
-    public int getFileChunksSize(String pathname){
-        for(int i = 0; i < filesBackedUp.size(); i++){
-            if(filesBackedUp.get(i).getFilePath().equals(pathname)){
-                return filesBackedUp.get(i).getFileChunks().size();
-            }
-        }
-        return 0;
-    }
-
-    /**
      * Check if a certain file is saved in the folder
      * @param fileID - id of the file
      * @return true if the file is saved, false otherwise
      */
     public boolean fileIsSaved(String fileID){
-        for(int i = 0; i < filesBackedUp.size(); i++){
-            if(filesBackedUp.get(i).getID().equals(fileID)){
-                return true;
-            }
-        }
-
-        return false;
+        return filesBackedUp.containsKey(fileID);
     }
 
     /**
@@ -242,8 +208,12 @@ public class PeerFolder {
      * @return  true if the file is saved, false otherwise
      */
     public boolean fileIsSavedPathname(String pathname){
-        for(int i = 0; i < filesBackedUp.size(); i++){
-            if(filesBackedUp.get(i).getFilePath().equals(pathname)){
+        Iterator<Map.Entry<String, FileData>> iter = filesBackedUp.entrySet().iterator();
+
+        while(iter.hasNext()){
+            Map.Entry<String, FileData> entry = iter.next();
+            FileData file = entry.getValue();
+            if(file.getFilePath().equals(pathname)){
                 return true;
             }
         }
@@ -274,8 +244,8 @@ public class PeerFolder {
      * Adds a file to the storage
      * @param file - file to be stored
      */
-    public void addFile(FileData file){
-        filesBackedUp.add(file);
+    public void addFile(String fileID, FileData file){
+        filesBackedUp.put(fileID, file);
     }
 
     /**
@@ -362,6 +332,15 @@ public class PeerFolder {
      * @param filePath - path of the file tha has been deleted
      */
     public void deleteStoredFile(String filePath){
+        FileData file = storedFiles.get(filePath);
+
+        File fileToDelete = new File(ChordPeer.getFolder().getPath()+ "/" + file.getFileName());
+        if(fileToDelete.delete()){
+            System.out.println("Deleted file " + file.getID() + " with path " + ChordPeer.getFolder().getPath()+ "/" + file.getFileName());
+        }
+
+        storageUsed -= file.getFileSize();
+        
         storedFiles.remove(filePath);
     }
 
@@ -370,13 +349,22 @@ public class PeerFolder {
      * @param filePath - path of the file to be removed
      */
     public void removeFile(String filePath){
-        Iterator<FileData> iter = filesBackedUp.iterator();
+        Iterator<Map.Entry<String, FileData>> iter = filesBackedUp.entrySet().iterator();
 
         while(iter.hasNext()){
-            FileData file = iter.next();
+            Map.Entry<String, FileData> entry = iter.next();
+            FileData file = entry.getValue();
             if(file.getFilePath().equals(filePath)){
-                filesBackedUp.remove(file);
+                filesBackedUp.remove(entry.getKey());
             }
         }
+    }
+
+    /**
+     * Removes a file from storage
+     * @param fileID - id of the file to be removed
+     */
+    public void removeFileByID(String fileID){
+        filesBackedUp.remove(fileID);
     }
 }

@@ -1,7 +1,6 @@
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.Arrays;
 
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSocket;

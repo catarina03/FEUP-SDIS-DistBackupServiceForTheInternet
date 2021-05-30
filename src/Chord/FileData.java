@@ -11,7 +11,8 @@ public class FileData {
     private ArrayList<Chunk> chunks;
     private File file;
     private String fileID;
-    private int fileNumber;
+    private int fileNumber, fileSize;
+    private ChordNode initiatorPeer;
 
     public FileData(String filePath, int repDegree, int number){
         this.file = new File(filePath);
@@ -24,15 +25,20 @@ public class FileData {
         splitFile();
     }
 
-    public FileData(String id, int chunks, int repDegree, String filePath){
+    public FileData(String id, int chunks, int repDegree, String size, String filePath){
         this.fileID = id;
         this.nrChunks = chunks;
         this.replicationDegree = repDegree;
         this.chunks = new ArrayList<>();
         this.file = new File(filePath);
+        fileSize = Integer.parseInt(size);
     }
 
     public int getFileSize(){
+        if(chunks.isEmpty()){
+            return fileSize;
+        }
+        
         int size = 0;
 
         for(int i = 0; i < chunks.size(); i++){
@@ -165,5 +171,19 @@ public class FileData {
      */
     public File getFile(){
         return this.file;
+    } 
+
+    /**
+     * @return ChordNode representing the initiator peer
+     */
+    public ChordNode getInitiatorPeer() {
+        return initiatorPeer;
+    }
+
+    /**
+     * @param initiatorPeer - peer who initiated the backup process of the file
+     */
+    public void setInitiatorPeer(ChordNode initiatorPeer) {
+        this.initiatorPeer = initiatorPeer;
     }
 }
