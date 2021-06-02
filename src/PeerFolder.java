@@ -40,10 +40,10 @@ public class PeerFolder {
     
     public PeerFolder(String peerID){
         try {
-            this.peerFolder = Paths.get("../PeersStorage/Peer"+peerID);
+            this.peerFolder = Paths.get("PeersStorage/Peer"+peerID);
 
             if(Files.exists(peerFolder)){
-                this.deleteDirectory(new File("../PeersStorage/Peer"+peerID));
+                this.deleteDirectory(new File("PeersStorage/Peer"+peerID));
             }
             Files.createDirectories(peerFolder);
             

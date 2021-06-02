@@ -27,13 +27,9 @@ public class Listener implements Runnable{
 
             SSLServerSocket s = (SSLServerSocket) ssf.createServerSocket(portNumber); 
 
-            if(cipherSuites.length == 0){
-                System.out.println("Listener Using Default Cipher Suites");
-                s.setSSLParameters( new SSLParameters(ssf.getDefaultCipherSuites()));
-            }
-            else{
-                s.setSSLParameters(new SSLParameters(cipherSuites));
-            }
+            System.out.println("Listener Using Default Cipher Suites");
+            s.setSSLParameters( new SSLParameters(ssf.getDefaultCipherSuites()));
+        
 
   
             
@@ -51,7 +47,7 @@ public class Listener implements Runnable{
         }  
         catch( IOException e) {  
             System.out.println("Server - Failed to create SSLSocket");  
-            e.getMessage();  
+            e.printStackTrace();  
             return;  
         }
         

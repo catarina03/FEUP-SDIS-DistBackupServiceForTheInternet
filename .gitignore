@@ -1,6 +1,2 @@
 *.class
-src\PeersStorage/*
 src\PeersStorage
-src/PeersStorage/Peer25934/testImage.jpeg
-src/PeersStorage/Peer51041/testImage.jpeg
-src/PeersStorage/Peer6032/testImage.jpeg
