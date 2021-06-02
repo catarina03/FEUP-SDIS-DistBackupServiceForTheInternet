@@ -14,7 +14,16 @@ import java.util.concurrent.ConcurrentHashMap;
 public class PeerFolder {
     private Path peerFolder;
     private int storageSize, storageUsed;
+
+    /*
+        key --> File ID
+        Value --> File Data
+    */
     private ConcurrentHashMap<String, FileData> filesBackedUp;
+    
+    /**
+     * Array containing the chunks of the file we want to restore
+     */
     private ArrayList<Chunk> fileToRestore;
 
     /*
@@ -91,13 +100,6 @@ public class PeerFolder {
     }
 
     /**
-     * @return file to restore
-     */
-    public ArrayList<Chunk> getFileToRestore() {
-        return fileToRestore;
-    }
-
-    /**
      * @return path of the folder
      */
     public String getPath(){
@@ -143,6 +145,11 @@ public class PeerFolder {
         return filesBackedUp.get(fileID);
     }
 
+    /**
+     * Retrieve a file that has been stored in the peer
+     * @param filePath - path of the file to restore
+     * @return FileData of the file
+     */
     public FileData getStoredFile(String filePath){
         return storedFiles.get(filePath);
     }
@@ -214,22 +221,13 @@ public class PeerFolder {
 
     /**
      * Check if a certain file is saved in the folder
-     * @param filePath - id of the file
+     * @param filePath - path of the file
      * @return true if the file is saved, false otherwise
      */
     public boolean fileIsStored(String filePath){
         return storedFiles.containsKey(filePath);
     }
 
-    /**
-     * Check if a certain file is saved with its path
-     * @param pathname - path of the file
-     * @return  true if the file is saved, false otherwise
-     */
-    public boolean fileIsStoredPathname(String pathname){
-
-        return storedFiles.containsKey(pathname);
-    }
 
     /**
      * Adds a file to the storage
@@ -325,11 +323,13 @@ public class PeerFolder {
     public void deleteStoredFile(String filePath){
         FileData file = storedFiles.get(filePath);
 
+        // Delete the file in the folder
         File fileToDelete = new File(ChordPeer.getFolder().getPath()+ "/" + file.getFileName());
         if(fileToDelete.delete()){
             System.out.println("Deleted file " + file.getID() + " with path " + ChordPeer.getFolder().getPath()+ "/" + file.getFileName());
         }
 
+        // The storage is no longer being used
         storageUsed -= file.getFileSize();
         
         storedFiles.remove(filePath);

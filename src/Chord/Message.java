@@ -117,7 +117,7 @@ public class Message{
         ChordPeer.setSavingFile(true);
 
         // If it has space and the file is not stored, it can be stored
-        if((ChordPeer.getFolder().getStorageUsed() + Integer.parseInt(header[4].trim()) < ChordPeer.getFolder().getStorageSize()) && !ChordPeer.getFolder().fileIsStoredPathname(header[5].trim())){
+        if((ChordPeer.getFolder().getStorageUsed() + Integer.parseInt(header[4].trim()) < ChordPeer.getFolder().getStorageSize()) && !ChordPeer.getFolder().fileIsStored(header[5].trim())){
             FileData storedFile = new FileData(header[1].trim(), Integer.parseInt(header[2].trim()), Integer.parseInt(header[3].trim()), header[4].trim(), header[5].trim());
             ChordPeer.getFolder().storeFile(header[5].trim(), storedFile);
             
