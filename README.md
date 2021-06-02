@@ -12,6 +12,7 @@ Group members:
 #### Instructions:
 
 1. Make sure that you are in the src directory;
+3. Run "start rmiregistry";
 2. Run "javac *.java";
 3. Open one terminal for each peer and run for each: "java ChordPeer <"node-address"> <"node-port"> <"rmi-name"> (<"known-node-addres"> <"known-node-port">)?
 4. Open other terminal and run: "java TestApp <"rmi-name"> <"OPERATION"> (<"ARGUMENTS>)*
