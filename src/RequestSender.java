@@ -13,6 +13,9 @@ public class RequestSender{
     String[] cipherSuites;
     Boolean wait;
 
+    /**
+     * Constructor for a string request
+     */
     public RequestSender(String addr, String port, String request, String[] suites, Boolean waitResponse){
         requestData = request.getBytes();
         address = addr;
@@ -21,6 +24,9 @@ public class RequestSender{
         wait = waitResponse;
     }
 
+    /**
+     * Constructor for a byte array request
+     */
     public RequestSender(String addr, String port, byte[] request, String[] suites, Boolean waitResponse){
         requestData = request;
         address = addr;
@@ -32,7 +38,7 @@ public class RequestSender{
     public byte[] send() throws Exception{
         setSystemProperties();
   
-
+        // Create the client soccket
         SSLSocketFactory ssf = (SSLSocketFactory) SSLSocketFactory.getDefault();  
         SSLSocket s;
 
@@ -48,19 +54,26 @@ public class RequestSender{
 
         s.startHandshake();
 
+        // Get the Output Stream
         OutputStream out = s.getOutputStream();
 
+        // Write the Request
         out.write(requestData, 0, requestData.length);
 
         if(!wait){
             return null;
         }
 
+        // Get the Input Stream
         InputStream in = s.getInputStream();
         
+        // Buffer to save the request
         byte[] response = new byte[11000];
 
+        // Read Response
         int bytesRead = in.read(response, 0, response.length);
+    
+        // Write what was read into a ByteArrayOutputStream so that the message is of the right size
         ByteArrayOutputStream baos = new ByteArrayOutputStream(11000);
         baos.write(response, 0, bytesRead);
 

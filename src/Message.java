@@ -54,12 +54,15 @@ public class Message{
 
         // Parse the operation to be executed
         switch (header[0].trim()) {
+            // Find the Successor of the id received in the header message
             case "FINDSUCCESSOR":
                     return ChordPeer.getChordLayer().findSuccessor(Integer.parseInt(header[1].trim())).getBytes();
+            // The information in the header is relative to the new successor
             case "SUCCESSOR":
                 ChordNode successor = new ChordNode(Integer.parseInt(header[1].trim()), header[2].trim(), header[3].trim());
                 ChordPeer.getChordLayer().setSuccessor(successor);
                 return null;
+            // Create a pmessage with the information about the node's predecessor
             case "GETPREDECESSOR":
                 String response;
                 if(ChordPeer.getChordLayer().getPredecessor() == null){
@@ -70,31 +73,41 @@ public class Message{
                 }
 
                 return response.getBytes();
+            // The information in the message header is relative to the node's predecessor
             case "NOTIFY":
                 ChordPeer.getChordLayer().updatePredecessor(header[1].trim(), header[2].trim(), header[3].trim());
                 return null;
+            // A node wants to know if this node is alive
             case "CHECKCONNECTION":
                 return "ALIVE".getBytes();
+            // Check if this node can save a file
             case "SAVEFILE":
                 return saveFile().getBytes();
+            // Set the initiator peer of a file
             case "INITIATOR":
                 int nodeID = Integer.parseInt(header[2].trim());
                 ChordPeer.getFolder().getStoredFiles().get(header[1].trim()).setInitiatorPeer(new ChordNode(nodeID, header[3].trim(), header[4].trim()));
                 return null;
+            // Save a chunk received in the message body
             case "PUTCHUNK":
                 saveFileChunk();
                 return "STORED".getBytes();
+            // There are no more chunks to receive
             case "SAVECOMPLETED":
                 locallySaveFile();
                 return "LOCALLYSAVED".getBytes();
+            // Send the Chunk of a file
             case "GETCHUNK":
                 return restoreChunk();
+            // Save the chunk of the file the node is restoring
             case "RESTORECHUNK":
                 saveRestoredChunk();
                 return null;
+            // Delete a file
             case "DELETE":
                 deleteFile();
                 return "DELETED".getBytes();
+            // A file was deleted, initiate backup protocol for that file
             case "REMOVED":
                 dealWithRemovedFile();
                 return null;
@@ -107,6 +120,10 @@ public class Message{
         
     }
 
+    /**
+     * Check if a file can be saved in this peer or find the peer who can save the file
+     * @return Response to a SAVEFILE request
+     */
     private String saveFile(){
 
         // If file already saved or is already trying to save a file, it can't save another file
@@ -117,7 +134,8 @@ public class Message{
         ChordPeer.setSavingFile(true);
 
         // If it has space and the file is not stored, it can be stored
-        if((ChordPeer.getFolder().getStorageUsed() + Integer.parseInt(header[4].trim()) < ChordPeer.getFolder().getStorageSize()) && !ChordPeer.getFolder().fileIsStoredPathname(header[5].trim())){
+        if((ChordPeer.getFolder().getStorageUsed() + Integer.parseInt(header[4].trim()) < ChordPeer.getFolder().getStorageSize()) && !ChordPeer.getFolder().fileIsStored(header[5].trim())){
+            // Store the file information in folder
             FileData storedFile = new FileData(header[1].trim(), Integer.parseInt(header[2].trim()), Integer.parseInt(header[3].trim()), header[4].trim(), header[5].trim());
             ChordPeer.getFolder().storeFile(header[5].trim(), storedFile);
             
@@ -130,6 +148,7 @@ public class Message{
         ChordNode successor;
         Boolean triedPredecessor;
 
+        // If the predecessor exists try to find if he can save the file, if the predecessor doesn't exist try the successor
         if(ChordPeer.getChordLayer().getPredecessor() == null && ChordPeer.getChordLayer().getSuccessor() != null){
             successor = ChordPeer.getChordLayer().getSuccessor();
             triedPredecessor = false;
@@ -168,16 +187,25 @@ public class Message{
 
         ChordPeer.setSavingFile(false);
         System.out.println("SAVED " + successor.getId() + " " + successor.getAddress() + " " + successor.getPortNumber());
+
         // Respond with a message telling who stored the file
         return "SAVED " + successor.getId() + " " + successor.getAddress() + " " + successor.getPortNumber();
     }
 
+    /**
+     * Save a specific chunk of a file. Information of the file and the chunk in the header. Content of the chunk inthe message body
+     */
     private void saveFileChunk(){
+        // Create the chunk with the information received
         Chunk chunkToStore = new Chunk(Integer.parseInt(header[2].trim()), body.length, body, header[1].trim());
 
+        // Save it in the file
         ChordPeer.getFolder().saveChunk(header[3].trim(), chunkToStore);
     }
 
+    /**
+     * Create a physical file in the peer's folder
+     */
     private void locallySaveFile(){
         // Get all the chunks of the file and sorted in order
         FileData file = ChordPeer.getFolder().getStoredFiles().get(header[1].trim());
@@ -199,10 +227,16 @@ public class Message{
         
     }
 
+    /**
+     * Send a Chunk to the peer who asked for it
+     * @return byte array containing the message to be sent.
+     */
     private byte[] restoreChunk(){
+        //  Save the information about which file and chunk the peer asked for
         String filePath = header[1].trim();
         int chunkNr = Integer.parseInt(header[2].trim());
 
+        // Get the Chunk
         Chunk chunkToSend = ChordPeer.getFolder().getStoredFile(filePath).getChunk(chunkNr);
        
         // Create the header and body of the message
@@ -219,16 +253,26 @@ public class Message{
 
     }
 
+    /**
+     * Save a chunk that the peer asked for
+     */
     private void saveRestoredChunk(){
+        // Create the chunk with the information received
         Chunk chunkToRestore = new Chunk(Integer.parseInt(header[2].trim()), body.length, body, header[1].trim());
 
         ChordPeer.getFolder().restoreChunk(chunkToRestore);
     }
 
+    /**
+     * Delete a specific file
+     */
     private void deleteFile(){
         ChordPeer.getFolder().deleteStoredFile(header[1].trim());
     }
 
+    /**
+     * Initiate backup protocol for a file that was removed
+     */
     private void dealWithRemovedFile() {
         FileData fileRemoved = ChordPeer.getFolder().getFilebyID(header[1].trim());
         ChordPeer.getFolder().deleteFileLocation(fileRemoved);

@@ -14,6 +14,9 @@ public class FileData {
     private int fileNumber, fileSize;
     private ChordNode initiatorPeer;
 
+    /**
+     * Constructor for when we are backing up a file
+     */
     public FileData(String filePath, int repDegree, int number){
         this.file = new File(filePath);
         this.chunks = new ArrayList<>();
@@ -25,6 +28,9 @@ public class FileData {
         splitFile();
     }
 
+    /**
+     * Constructor for when we are saving a file
+     */
     public FileData(String id, int chunks, int repDegree, String size, String filePath){
         this.fileID = id;
         this.nrChunks = chunks;
@@ -32,87 +38,6 @@ public class FileData {
         this.chunks = new ArrayList<>();
         this.file = new File(filePath);
         fileSize = Integer.parseInt(size);
-    }
-
-    public int getFileSize(){
-        if(chunks.isEmpty()){
-            return fileSize;
-        }
-        
-        int size = 0;
-
-        for(int i = 0; i < chunks.size(); i++){
-            size += chunks.get(i).getSize();
-        }
-
-        return size;
-    }
-
-    public void addChunk(Chunk chunk){
-        chunks.add(chunk);
-    }
-
-    private void splitFile(){
-        int chunkSize = 10000;
-        byte[] chunkBuffer = new byte[chunkSize];
-
-        // Loop thourgh the file while saving its content into chunks
-        try(FileInputStream fis = new FileInputStream(this.file); BufferedInputStream bis = new BufferedInputStream(fis)){
-            int bytesRead = 0;
-            while((bytesRead = bis.read(chunkBuffer)) > 0){
-                // Get the information read
-                byte[] chunkContent = Arrays.copyOf(chunkBuffer, bytesRead);
-
-                // Create a new chunk with the information read
-                this.nrChunks++;
-                Chunk newChunk = new Chunk(this.nrChunks, bytesRead, chunkContent, this.fileID);
-
-                this.chunks.add(newChunk);
-
-                // Clear the buffer
-                chunkBuffer = new byte[chunkSize];
-            }
-
-            // If the last chunk  read has 64Kb in size, create a chunk with size 0 to be the last one
-            if(this.file.length() % chunkSize == 0){
-                this.nrChunks++;
-                Chunk newChunk = new Chunk(this.nrChunks, 0, null, this.fileID);
-                this.chunks.add(newChunk);
-            } 
-        }
-        catch(IOException e){
-            e.printStackTrace();
-        }
-    }
-
-    private void calculatID(){
-        // Create a String to be used to generate the file ID. 
-        // Uses the name of the files, the last time it was modified and the owner to ensure it's a unique string
-        String fileMetadata = this.file.getName() + this.file.lastModified() + this.file.getParent() + this.fileNumber;
-
-        String encondedID = sha1Encode(fileMetadata); 
-        this.fileID = "" + Integer.parseInt(encondedID.substring(encondedID.length() - ChordPeer.getIdBits()/4), 16);
-
-    }
-
-    private String sha1Encode(final String stringToEncode) {
-        try{
-            final MessageDigest digest = MessageDigest.getInstance("SHA-1");
-            final byte[] hash = digest.digest(stringToEncode.getBytes("UTF-8"));
-            final StringBuilder hexString = new StringBuilder();
-
-            for (int i = 0; i < hash.length; i++) {
-                final String hex = Integer.toHexString(0xff & hash[i]);
-                if(hex.length() == 1) 
-                  hexString.append('0');
-                hexString.append(hex);
-            }
-
-            return hexString.toString();
-        } catch(Exception e){
-           e.printStackTrace();
-           return "";
-        }
     }
 
     /**
@@ -185,5 +110,106 @@ public class FileData {
      */
     public void setInitiatorPeer(ChordNode initiatorPeer) {
         this.initiatorPeer = initiatorPeer;
+    }
+
+    /**
+     * Calculates the size of the file by summing the size of all the chunks
+     * @return file size
+     */
+    public int getFileSize(){
+        if(chunks.isEmpty()){
+            return fileSize;
+        }
+        
+        int size = 0;
+
+        for(int i = 0; i < chunks.size(); i++){
+            size += chunks.get(i).getSize();
+        }
+
+        return size;
+    }
+
+    /**
+     * Adds a chunk to the file chunks
+     * @param chunk - chunk to add
+     */
+    public void addChunk(Chunk chunk){
+        chunks.add(chunk);
+    }
+
+    /**
+     * Splits a file into chunks of 10000 bytes and saves them in a array
+     */
+    private void splitFile(){
+        int chunkSize = 10000;
+        byte[] chunkBuffer = new byte[chunkSize];
+
+        // Loop thourgh the file while saving its content into chunks
+        try(FileInputStream fis = new FileInputStream(this.file); BufferedInputStream bis = new BufferedInputStream(fis)){
+            int bytesRead = 0;
+            while((bytesRead = bis.read(chunkBuffer)) > 0){
+                // Get the information read
+                byte[] chunkContent = Arrays.copyOf(chunkBuffer, bytesRead);
+
+                // Create a new chunk with the information read
+                this.nrChunks++;
+                Chunk newChunk = new Chunk(this.nrChunks, bytesRead, chunkContent, this.fileID);
+
+                this.chunks.add(newChunk);
+
+                // Clear the buffer
+                chunkBuffer = new byte[chunkSize];
+            }
+
+            // If the last chunk  read has 64Kb in size, create a chunk with size 0 to be the last one
+            if(this.file.length() % chunkSize == 0){
+                this.nrChunks++;
+                Chunk newChunk = new Chunk(this.nrChunks, 0, null, this.fileID);
+                this.chunks.add(newChunk);
+            } 
+        }
+        catch(IOException e){
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Calculates the ID of the file by enconding, using SHA-1, the file metadata + the file number
+     */
+    private void calculatID(){
+        // Create a String to be used to generate the file ID. 
+        // Uses the name of the files, the last time it was modified and the owner to ensure it's a unique string
+        String fileMetadata = this.file.getName() + this.file.lastModified() + this.file.getParent() + this.fileNumber;
+
+        String encondedID = sha1Encode(fileMetadata); 
+        this.fileID = "" + Integer.parseInt(encondedID.substring(encondedID.length() - ChordPeer.getIdBits()/4), 16);
+
+    }
+
+    
+    /**
+     * Encodes a string with sha-1
+     * @param stringToEncode - string that will be enconded
+     * @return - enconded string
+     */
+    private String sha1Encode(final String stringToEncode) {
+        try{
+            final MessageDigest digest = MessageDigest.getInstance("SHA-1");
+            final byte[] hash = digest.digest(stringToEncode.getBytes("UTF-8"));
+            final StringBuilder hexString = new StringBuilder();
+
+            for (int i = 0; i < hash.length; i++) {
+                final String hex = Integer.toHexString(0xff & hash[i]);
+                if(hex.length() == 1) 
+                  hexString.append('0');
+                hexString.append(hex);
+            }
+
+            return hexString.toString();
+        } catch(Exception e){
+           e.printStackTrace();
+           return "";
+        }
     }
 }

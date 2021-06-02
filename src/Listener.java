@@ -21,18 +21,15 @@ public class Listener implements Runnable{
     public void run() {
         setSystemProperties();
 
+        // Create the SSL Server Socket to receive the requests
         try {  
             SSLServerSocketFactory ssf = (SSLServerSocketFactory) SSLServerSocketFactory.getDefault();  
 
             SSLServerSocket s = (SSLServerSocket) ssf.createServerSocket(portNumber); 
 
-            if(cipherSuites.length == 0){
-                System.out.println("Listener Using Default Cipher Suites");
-                s.setSSLParameters( new SSLParameters(ssf.getDefaultCipherSuites()));
-            }
-            else{
-                s.setSSLParameters(new SSLParameters(cipherSuites));
-            }
+            System.out.println("Listener Using Default Cipher Suites");
+            s.setSSLParameters( new SSLParameters(ssf.getDefaultCipherSuites()));
+        
 
   
             
@@ -40,20 +37,25 @@ public class Listener implements Runnable{
 
 
             while(true){
+                // Accept the Connection
                 SSLSocket c = (SSLSocket)s.accept();
-
+                
+                // Deal with the request
                 ChordPeer.getThreadPool().execute(new ReceiveRequestTask(c));
             }    
 
         }  
         catch( IOException e) {  
             System.out.println("Server - Failed to create SSLSocket");  
-            e.getMessage();  
+            e.printStackTrace();  
             return;  
         }
         
     }
 
+    /**
+     * Set the system properties requiered for the SSL connection
+     */
     private static void setSystemProperties(){
         //set the type of trust store
         System.setProperty("javax.net.ssl.trustStoreType","JKS");
@@ -67,6 +69,9 @@ public class Listener implements Runnable{
         System.setProperty("javax.net.ssl.keyStore","./server.keys");
     }
     
+    /**
+     * Transform an string into a int
+     */
     private static int getPort(String portString){
         Integer port = 0;
         try{
