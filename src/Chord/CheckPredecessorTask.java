@@ -15,10 +15,12 @@ public class CheckPredecessorTask implements Runnable{
     public void run(){
         setSystemProperties();
         
+        // If the predecessor is null, there is no need to check if he is alive
         if(ChordPeer.getChordLayer().getPredecessor() == null){
             return;
         }
 
+        // Start the connection
         SSLSocketFactory ssf = (SSLSocketFactory) SSLSocketFactory.getDefault();  
         SSLSocket s;
         try {
@@ -33,11 +35,13 @@ public class CheckPredecessorTask implements Runnable{
             }
     
             s.startHandshake();
-    
+            
+            // Send the checkconnection message
             OutputStream out = s.getOutputStream();
             String checkPredecessor = "CHECKCONNECTION" +  " \r\n\r\n";
             out.write(checkPredecessor.getBytes(), 0, checkPredecessor.getBytes().length);
-    
+            
+            // Check if the peer responds
             InputStream in = s.getInputStream();
             
             byte[] response = new byte[10000];

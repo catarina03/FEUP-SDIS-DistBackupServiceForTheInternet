@@ -9,9 +9,12 @@ public class CheckBackupNodesTask implements Runnable{
     @Override
     public void run(){
         System.out.println("Checking Backup nodes");
-        Iterator<Map.Entry<FileData, ChordNode>> iter = ChordPeer.getFolder().getFileLocation().entrySet().iterator();
+    
         String message = "CHECKCONNECTION" +  " \r\n\r\n";
+        
+        Iterator<Map.Entry<FileData, ChordNode>> iter = ChordPeer.getFolder().getFileLocation().entrySet().iterator();
 
+        // Iterate over all nodes who have a filed saved
         while(iter.hasNext()){
             Map.Entry<FileData, ChordNode> entry = iter.next();
 
@@ -23,6 +26,7 @@ public class CheckBackupNodesTask implements Runnable{
                 String response = new String(checkConnectionRequest.send());
                 System.out.println("Node responded with :" + response);
             } catch (Exception e) {
+                // If the node failed, try to save the file again
                 ChordPeer.getChordLayer().dealWithNodeFailure(node.getAddress(), node.getPortNumber());
 
                 ChordPeer.getFolder().getFileLocation().remove(entry.getKey());

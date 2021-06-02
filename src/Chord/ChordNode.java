@@ -22,7 +22,7 @@ public class ChordNode {
         return id;
     }
 
-    public void printInfo(){
-        System.out.println("Chord Node with id " + id + " at port " + portNumber);
+    public String printInfo(){
+        return "Chord Node with id " + id + " at port " + portNumber + "\n";
     }
 }
