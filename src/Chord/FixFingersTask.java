@@ -8,6 +8,7 @@ public class FixFingersTask implements Runnable{
     @Override
     public void run() {
 
+        // Iterate over the finger numbers and see who is the successor of each
         for(int i = 1; i <= ChordPeer.getIdBits(); i++){
             int fingerStart = (int) ((ChordPeer.getId() + Math.pow(2, i - 1)) % Math.pow(2, ChordPeer.getIdBits()));
             String[] successorResponse = ChordPeer.getChordLayer().findSuccessor(fingerStart).split(" ");
