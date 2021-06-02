@@ -19,13 +19,20 @@ public class ReceiveRequestTask implements Runnable{
     public void run() {
         InputStream in;
         try {
+            // Get the input stream from the socket
             in = socket.getInputStream();
+
+            // Buffer to save the request
             byte[] requestReceived = new byte[11000];
 
+            // Read request
             int bytesRead = in.read(requestReceived, 0, requestReceived.length);
+
+            // Write what was read into a ByteArrayOutputStream so that the message is of the right size
             ByteArrayOutputStream baos = new ByteArrayOutputStream(11000);
             baos.write(requestReceived, 0, bytesRead);
             
+            // Resolve the request
             Message request = new Message(baos.toByteArray());
 
             byte[] response = request.resolve();
@@ -34,6 +41,7 @@ public class ReceiveRequestTask implements Runnable{
                 return;
             }
 
+            // Sent the message
             OutputStream out = socket.getOutputStream();
             out.write(response, 0, response.length);
 
