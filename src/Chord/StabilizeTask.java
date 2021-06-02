@@ -7,7 +7,8 @@ public class StabilizeTask implements Runnable{
     @Override
     public void run() {
         try{
-        //System.out.println("Stabilizing....");
+        System.out.println("Stabilizing....");
+
         String requestPredecessorMessage = "GETPREDECESSOR " + ChordPeer.getChordLayer().getSuccessor().getId() + " \r\n\r\n";
         
         RequestSender requestPredecessor = new RequestSender(ChordPeer.getChordLayer().getSuccessor().getAddress(), "" + ChordPeer.getChordLayer().getSuccessor().getPortNumber(), requestPredecessorMessage, ChordPeer.getChordLayer().getCipherSuites(), true);
@@ -28,9 +29,10 @@ public class StabilizeTask implements Runnable{
 
         requestNotify.send();
 
-       // System.out.println("Stabilized.");
+        System.out.println("Stabilized.");
     }
     catch (Exception e) {
+        e.printStackTrace();
         System.out.println("Successor failed while trying to stabilize.");
         ChordPeer.getChordLayer().dealWithNodeFailure(ChordPeer.getChordLayer().getSuccessor().getAddress(), ChordPeer.getChordLayer().getSuccessor().getPortNumber());
         

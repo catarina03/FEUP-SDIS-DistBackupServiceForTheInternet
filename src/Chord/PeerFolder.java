@@ -33,10 +33,10 @@ public class PeerFolder {
         try {
             this.peerFolder = Paths.get("../PeersStorage/Peer"+peerID);
 
-            if(!Files.exists(peerFolder)){
-                Files.createDirectories(peerFolder);
+            if(Files.exists(peerFolder)){
+                this.deleteDirectory(new File("../PeersStorage/Peer"+peerID));
             }
-            
+            Files.createDirectories(peerFolder);
             
         } catch (IOException e1) {
             e1.printStackTrace();
@@ -67,15 +67,6 @@ public class PeerFolder {
         }
 
         return null;
-    }
-
-    /**
-     * Get a specific file stored in the folder
-     * @param filePath - path of the file to be retrieved
-     * @return null if the file isn't stored, or the file with the path given
-     */
-    public FileData getStoredFiles(String filePath){
-        return storedFiles.get(filePath);
     }
 
     /**
@@ -367,4 +358,20 @@ public class PeerFolder {
     public void removeFileByID(String fileID){
         filesBackedUp.remove(fileID);
     }
+
+    /**
+     * Removes all files from a directory
+     * @param folderToDelete - folder where we want to delete the contents
+     */
+    private void deleteDirectory(File folderToDelete) {
+        File[] folderContents = folderToDelete.listFiles();
+
+        if(folderContents != null){
+            for(File file : folderContents){
+                file.delete();
+            }
+        }
+
+    }
+
 }

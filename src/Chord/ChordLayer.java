@@ -115,9 +115,9 @@ public class ChordLayer {
             setPredecessor(new ChordNode(Integer.parseInt(nodeID), addr, port));
         }
 
-        // System.out.println("Predecessor Updated.");
-        // System.out.println("Current Predecessor: " + ChordLayer.predecessor.getId());
-        // System.out.println("Current Successor: " + ChordLayer.successor.getId());
+        System.out.println("Predecessor Updated.");
+        System.out.println("Current Predecessor: " + ChordLayer.predecessor.getId());
+        System.out.println("Current Successor: " + ChordLayer.successor.getId());
     }
 
     public void dealWithNodeFailure(String nodeAddres, int nodePort){
@@ -143,52 +143,14 @@ public class ChordLayer {
     }
 
     public void printFingerTable(){
-        // Iterator<Map.Entry<Integer, ChordNode>> iter = ChordLayer.fingerTable.entrySet().iterator();
-        // System.out.println("Finger Table Updated:");
-        // while(iter.hasNext()){
-        //     Map.Entry<Integer, ChordNode> entry = iter.next();
-        //     System.out.println("Finger nr "  + entry.getKey() + " :");
-        //     entry.getValue().printInfo();
-        // }
+        Iterator<Map.Entry<Integer, ChordNode>> iter = ChordLayer.fingerTable.entrySet().iterator();
+        System.out.println("Peer Finger Table:\n");
+        while(iter.hasNext()){
+            Map.Entry<Integer, ChordNode> entry = iter.next();
+            System.out.println("Finger Number "  + entry.getKey() + " :");
+            entry.getValue().printInfo();
+        }
     }
-
-    // public ChordNode calculateFileNode(FileData fileToStore){
-    //     String[] successorResponse = findSuccessor(Integer.parseInt(fileToStore.getID())).split(" ");
-    //     ChordNode fileSuccessor = new ChordNode(Integer.parseInt(successorResponse[1].trim()), successorResponse[2].trim(), successorResponse[3].trim());
-
-    //     if(fileSuccessor.getId() == ChordPeer.getId()){
-    //         System.out.println("Saving file in predecessor.");
-    //         fileSuccessor = ChordLayer.predecessor;
-
-    //         if(fileSuccessor == null || fileSuccessor.getId() == ChordPeer.getId()){
-    //             System.out.println("Saving file in successor.");
-    //             fileSuccessor = ChordLayer.successor;
-    //             if(fileSuccessor == null || successor.getId() == ChordPeer.getId()){
-    //                 System.out.println("File cannot be saved because i'm alone");
-    //                 return null;
-    //             }
-    //         }
-    //     }
-
-    //     String saveFileMessage = "SAVEFILE " + fileToStore.getID() + " " + fileToStore.getTotalChunks() + " " + fileToStore.getReplicationDegree() + " " + fileToStore.getFileSize() + " " + fileToStore.getFilePath() + " \r\n\r\n";
-
-    //     RequestSender saveFileRequest = new RequestSender(successor.getAddress(), "" + successor.getPortNumber(), saveFileMessage, ChordLayer.cipherSuites, true);
-        
-    //     try {
-    //         String[] response = new String(saveFileRequest.send()).split(" ");
-    //         if(response[0].equals("NOTSAVED")){
-    //             System.out.println("File cannot be saved for there are no nodes that can save the file");
-    //             return null;
-    //         }
-    //         else if(!response[1].equals("NULL")){
-    //             successor = new ChordNode(Integer.parseInt(response[1]), response[2], response[3].trim());
-    //         }
-    //     } catch (Exception e) {
-    //         return null;
-    //     }
-
-    //     return fileSuccessor;
-    // }
 
     public Boolean dealWithInterval(int leftEndPoint, Boolean containsLeft, int rightEndPoint, Boolean containsRight, int value){
 

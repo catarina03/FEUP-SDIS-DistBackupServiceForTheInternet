@@ -19,7 +19,7 @@ public class ChordPeer implements PeerClientInterface{
     private static PeerFolder folder;
     private static Boolean savingFile = false;
 
-    public ChordPeer(String idNumber, String addr, String port, String[] suites){
+    public ChordPeer(String addr, String port, String[] suites){
         chordLayer = new ChordLayer(addr, port, suites);
 
         String encondedID = chordLayer.sha1Encode(addr + port);
@@ -78,31 +78,31 @@ public class ChordPeer implements PeerClientInterface{
 
         // Create Listener
         String[] cipherSuites = new String[0];
-        listener = new Listener(args[2], cipherSuites);
+        listener = new Listener(args[1], cipherSuites);
         threadPool.execute(listener);
 
         // Create the peer object to be saved in the RMI
-        ChordPeer obj = new ChordPeer(args[0], args[1], args[2], cipherSuites);
+        ChordPeer obj = new ChordPeer(args[0], args[1], cipherSuites);
 
         if(args.length < 5){
             ChordLayer.createChord();
         }
         else{
-            ChordLayer.joinChord(args[4], args[5]);
+            ChordLayer.joinChord(args[3], args[4]);
         }
 
         
         threadPool.scheduleWithFixedDelay(new StabilizeTask(), 5, 10, TimeUnit.SECONDS);
-        threadPool.scheduleWithFixedDelay(new FixFingersTask(), 20, 20, TimeUnit.SECONDS);
-        threadPool.scheduleWithFixedDelay(new CheckPredecessorTask(), 5, 20, TimeUnit.SECONDS);
-        threadPool.scheduleWithFixedDelay(new CheckBackupNodesTask(), 25, 20, TimeUnit.SECONDS);
+        threadPool.scheduleWithFixedDelay(new FixFingersTask(), 5, 10, TimeUnit.SECONDS);
+        threadPool.scheduleWithFixedDelay(new CheckPredecessorTask(), 5, 5, TimeUnit.SECONDS);
+        threadPool.scheduleWithFixedDelay(new CheckBackupNodesTask(), 15, 5, TimeUnit.SECONDS);
        
 
         // Save the object in the rmi
         try {
             PeerClientInterface stub = (PeerClientInterface) UnicastRemoteObject.exportObject(obj, 0);
             Registry registry = LocateRegistry.getRegistry();
-            registry.bind(args[3], stub);
+            registry.bind(args[2], stub);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -381,6 +381,54 @@ public class ChordPeer implements PeerClientInterface{
         }
 
         return "done";
+    }
+
+
+    /**
+     * Retrieves the stat of the peer
+     * @return a string containing the state of the peer
+     */
+    @Override
+    public String state() throws RemoteException {
+        StringBuilder state = new StringBuilder();
+        state.append("\n------------- Node Information -------------\n");
+        state.append("Peer ID: " + ChordPeer.getId() + ";\n");
+        state.append("Peer Port: " + ChordPeer.getChordLayer().getPortNumber() + ";\n");
+        state.append("Peer Address: " + ChordPeer.getChordLayer().getAddress() + ";\n");
+        state.append("Peer Port: " + ChordPeer.getChordLayer().getPortNumber() + ";\n");
+        ChordPeer.getChordLayer().printFingerTable();
+
+        // Retrieve the information about all the files stored by the peer
+        Iterator<Map.Entry<FileData, ChordNode>> locationIter = ChordPeer.getFolder().getFileLocation().entrySet().iterator();
+
+        state.append("\n------------- Files Backed Up -------------\n");
+        while(locationIter.hasNext()){
+            Map.Entry<FileData, ChordNode> entry = locationIter.next();
+            FileData fileState = entry.getKey();
+            ChordNode nodeLocation = entry.getValue();
+            state.append("File number " + fileState.getID() +":\n");
+            state.append("  - Pathname: " + fileState.getFilePath() + ";\n");
+            state.append("  - Node Location: \n");
+            state.append("      - Node IP: " + nodeLocation.getId() + ";\n");
+            state.append("      - Node Port: " + nodeLocation.getPortNumber() + ";\n");
+            state.append("      - Node Address: " + nodeLocation.getAddress() + ";\n");
+        }
+
+        Iterator<Map.Entry<String, FileData>> storedIter = ChordPeer.getFolder().getStoredFiles().entrySet().iterator();
+
+        state.append("\n------------- Files Stored -------------\n");
+        while(storedIter.hasNext()){
+            Map.Entry<String, FileData> storedEntry = storedIter.next();
+            FileData fileState = storedEntry.getValue();
+            state.append("File number " + fileState.getID() +":\n");
+            state.append("  - Pathname: " + fileState.getFilePath() + ";\n");
+            state.append("  - File Size: " + fileState.getFileSize() + ";\n");
+        }
+        // Retrieve the information about the peer's storage
+        state.append("\n Peer maximum storage: " + folder.getStorageSize() + "kB;\n");
+        state.append("\n Peer used storage: " + folder.getStorageUsed() + "kB;\n");
+
+        return state.toString();
     }
 
 

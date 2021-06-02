@@ -47,11 +47,11 @@ public class TestApp {
                     System.out.println(response);
                     break;
 
-                // // Start Peer State Protocol
-                // case "STATE":
-                //     response = stub.state();
-                //     System.out.println(response);
-                //     break;
+                // Start Peer State Protocol
+                case "STATE":
+                    response = stub.state();
+                    System.out.println(response);
+                    break;
             }
         } catch (Exception e) {
             System.err.println("Client exception: " + e.toString());

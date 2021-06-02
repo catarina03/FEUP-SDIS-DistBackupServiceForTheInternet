@@ -17,8 +17,6 @@ public class FixFingersTask implements Runnable{
             ChordPeer.getChordLayer().setFingerAtIndex((int) (Math.pow(2, i - 1)), successor);
 
         }
-
-        ChordPeer.getChordLayer().printFingerTable();
     }
     
 }
