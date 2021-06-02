@@ -5,9 +5,9 @@ SDIS Project for group T3G21.
 Group members:
 
 1. Bernardo Ramalho - up201704334@up.pt
-2. Catarina Fernandes - up201704334@up.pt
-3. Flávia Carvalhido - up201704334@up.pt
-4. João Rosário - up201704334@up.pt
+2. Catarina Fernandes - up201806610@up.pt
+3. Flávia Carvalhido - up201806857@up.pt
+4. João Rosário - up201806334@up.pt
 
 #### Instructions:
 
