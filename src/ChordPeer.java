@@ -117,7 +117,7 @@ public class ChordPeer implements PeerClientInterface{
 
         
         // Schedule Stabilize Task
-        threadPool.scheduleWithFixedDelay(new StabilizeTask(), 5, 10, TimeUnit.SECONDS);
+        threadPool.scheduleWithFixedDelay(new StabilizeTask(), 5, 5, TimeUnit.SECONDS);
         // Schedule Fix Finger Task to check if the finger table is correct
         threadPool.scheduleWithFixedDelay(new FixFingersTask(), 5, 10, TimeUnit.SECONDS);
         // Schedule the task  to check if the predecessor is alive
@@ -452,7 +452,7 @@ public class ChordPeer implements PeerClientInterface{
         state.append("Peer Port: " + ChordPeer.getChordLayer().getPortNumber() + ";\n");
         state.append("Peer Address: " + ChordPeer.getChordLayer().getAddress() + ";\n");
         state.append("Peer Port: " + ChordPeer.getChordLayer().getPortNumber() + ";\n");
-        ChordPeer.getChordLayer().printFingerTable();
+        state.append(ChordPeer.getChordLayer().printFingerTable());
 
         // Retrieve the information about all the files stored by the peer
         Iterator<Map.Entry<FileData, ChordNode>> locationIter = ChordPeer.getFolder().getFileLocation().entrySet().iterator();

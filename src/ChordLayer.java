@@ -226,7 +226,7 @@ public class ChordLayer {
     public String printFingerTable(){
         StringBuilder builder = new StringBuilder();
         Iterator<Map.Entry<Integer, ChordNode>> iter = ChordLayer.fingerTable.entrySet().iterator();
-        builder.append("Peer Finger Table:\n");
+        builder.append("\n------------- Finger Table -------------\n");
         while(iter.hasNext()){
             Map.Entry<Integer, ChordNode> entry = iter.next();
             builder.append("Finger Number "  + entry.getKey() + " : ");
