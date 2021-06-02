@@ -30,34 +30,58 @@ public class ChordPeer implements PeerClientInterface{
         threadPool = new ScheduledThreadPoolExecutor(100);
     }
 
+    /**
+     * Get the ip address of peer
+     * @return peer's id
+     */
     public static int getId() {
         return id;
     }
 
+    /**
+     * Get the Chord Layer class of the noode
+     * @return Chord Layer
+     */
     public static ChordLayer getChordLayer(){
         return chordLayer;
     }
 
-    public static Listener getListener() {
-        return listener;
-    }
-
+    /**
+     * Get the thread pool of the peer
+     * @return SchdulesThreadPoolExecutor of peer
+     */
     public static ScheduledThreadPoolExecutor getThreadPool() {
         return threadPool;
     }
 
+    /**
+     * Get the number of bits used to create the ID
+     * @return int representing the number of bits used
+     */
     public static int getIdBits() {
         return idBits;
     }
 
+    /**
+     * Get the Folder of the peer
+     * @return
+     */
     public static PeerFolder getFolder() {
         return folder;
     }
 
+    /**
+     * Get if the peer is being saved
+     * @return
+     */
     public static Boolean getSavingFile() {
         return savingFile;
     }
 
+    /**
+     * Set if the peer is saving a file
+     * @param savingFile - boolean representing the state
+     */
     public static void setSavingFile(Boolean savingFile) {
         ChordPeer.savingFile = savingFile;
     }
@@ -92,9 +116,13 @@ public class ChordPeer implements PeerClientInterface{
         }
 
         
+        // Schedule Stabilize Task
         threadPool.scheduleWithFixedDelay(new StabilizeTask(), 5, 10, TimeUnit.SECONDS);
+        // Schedule Fix Finger Task to check if the finger table is correct
         threadPool.scheduleWithFixedDelay(new FixFingersTask(), 5, 10, TimeUnit.SECONDS);
+        // Schedule the task  to check if the predecessor is alive
         threadPool.scheduleWithFixedDelay(new CheckPredecessorTask(), 5, 5, TimeUnit.SECONDS);
+        // Schedule the task to check if the nodes who saved files are alive
         threadPool.scheduleWithFixedDelay(new CheckBackupNodesTask(), 15, 5, TimeUnit.SECONDS);
        
 
@@ -119,7 +147,8 @@ public class ChordPeer implements PeerClientInterface{
     @Override
     public String backup(String filePath, int repDegree) throws RemoteException {
         System.out.println("Received Backup Request of file " + filePath);
-        //TODO: avisar o succesor que este node está responsavel pelos ficheiros
+
+        // Create a number of files equal to the replication degree
         for(int i = 0; i < repDegree; i++){
             // Create a file and save it in the folder
             FileData newFile = new FileData(filePath, repDegree, i);
@@ -131,19 +160,27 @@ public class ChordPeer implements PeerClientInterface{
         return "done";
     }
 
+    /**
+     * Calculates who saves the file and sends the chunks to them
+     * @param newFile - file to be saved
+     */
     public static void saveFile(FileData newFile){
         
         // Check who will save the file
         String[] successorResponse = ChordPeer.getChordLayer().findSuccessor(Integer.parseInt(newFile.getID())).split(" ");
         ChordNode successor = new ChordNode(Integer.parseInt(successorResponse[1].trim()), successorResponse[2].trim(), successorResponse[3].trim());
 
+        // If the initiator peer is the succesor of the file, save the file in the predecessor
         if(successor.getId() == id){
             System.out.println("Saving file in predecessor.");
             successor = ChordPeer.getChordLayer().getPredecessor();
 
+            // If the peer is his own predecessor then try to save it in the peer's successor
             if(successor == null || successor.getId() == id){
                 System.out.println("Saving file in successor.");
                 successor = ChordPeer.getChordLayer().getSuccessor();
+
+                // If both the peer's succcessor and predecessor are himself or don't exist then there are no nodes in the chord
                 if(successor == null || successor.getId() == id){
                     System.out.println("File cannot be saved because i'm alone");
                     ChordPeer.getFolder().removeFileByID(newFile.getID());
@@ -159,11 +196,14 @@ public class ChordPeer implements PeerClientInterface{
         
         try {
             String[] response = new String(saveFileRequest.send()).split(" ");
+
+            // If the response is "NOTSAVEd" then there are no peers who can save the file
             if(response[0].equals("NOTSAVED")){
                 System.out.println("File cannot be saved for there are no nodes that can save the file");
                 ChordPeer.getFolder().removeFileByID(newFile.getID());
                 return;
             }
+            // If the response is not NULL then the peer who can save the file is not the one we contacted
             else if(!response[1].equals("NULL")){
                 successor = new ChordNode(Integer.parseInt(response[1]), response[2], response[3].trim());
             }
@@ -204,6 +244,7 @@ public class ChordPeer implements PeerClientInterface{
             byte[] message = new byte[headerBytes.length + body.length];
             System.arraycopy(headerBytes, 0, message, 0, headerBytes.length);
             System.arraycopy(body, 0, message, headerBytes.length, body.length);
+
             // Send the message
             RequestSender putChunkRequest = new RequestSender(successor.getAddress(), "" + successor.getPortNumber(), message, chordLayer.getCipherSuites(), true);
 
@@ -220,13 +261,18 @@ public class ChordPeer implements PeerClientInterface{
             }
         }
 
+        // Tell the peer that there are no more chunks
         String fileSavedMessage = "SAVECOMPLETED " + newFile.getFilePath() + " \r\n\r\n";
         RequestSender savesFileRequest = new RequestSender(successor.getAddress(), "" + successor.getPortNumber(), fileSavedMessage, chordLayer.getCipherSuites(), false);
 
         try {
             savesFileRequest.send();
         } catch (Exception e) {
-            
+            chordLayer.dealWithNodeFailure(successor.getAddress(), successor.getPortNumber());
+
+            saveFile(newFile);
+
+            return;
         }
         
         System.out.println("File backup in peer: " + successor.getPortNumber());
@@ -245,8 +291,10 @@ public class ChordPeer implements PeerClientInterface{
 
         // Check if the file was stored in this peer
         if(ChordPeer.getFolder().fileIsSavedPathname(filePath)){
+            // Get where the file is saved
             ArrayList<ChordNode> nodes = ChordPeer.getFolder().getFileLocation(filePath);
 
+            // Index of the node we are contacting
             int nodeIndex = 0;
 
             ChordNode fileLocation = nodes.get(nodeIndex);
@@ -265,16 +313,19 @@ public class ChordPeer implements PeerClientInterface{
 
                     restoredChunkInfo.resolve();
                 } catch (Exception e) {
+                    // If the node is not online, then we contact the next node who saved the file
                     ChordPeer.getChordLayer().dealWithNodeFailure(fileLocation.getAddress(), fileLocation.getPortNumber());
                     ChordPeer.getFolder().deleteFileLocation(file);
 
                     nodeIndex++;
 
+                    // When nodeIndex is equal to the nodes size then there are no more nodes online that backup the file
                     if(nodeIndex == nodes.size()){
                         ChordPeer.getFolder().setFileToRestore(new ArrayList<>());
                         System.out.println("Can't restore for all the peer who had the file went offline");
                     }
 
+                    // Update the fileLocation and decriment i so that the peer asks for the chunk that failed
                     fileLocation = nodes.get(nodeIndex);
                     file = ChordPeer.getFolder().getFilebyNode(filePath, fileLocation);
                     i--;
@@ -282,6 +333,7 @@ public class ChordPeer implements PeerClientInterface{
                 
             }
 
+            // Restore the file into the peer's folder
             ChordPeer.getFolder().restoreFile(file.getFileName());
 
             System.out.println("File restored");
@@ -302,8 +354,10 @@ public class ChordPeer implements PeerClientInterface{
         System.out.println("Deleting file " + filePath);
         // Check if the file is saved
         if(folder.fileIsSavedPathname(filePath)){
+            // Get where the file is saved
             ArrayList<ChordNode> nodes = ChordPeer.getFolder().getFileLocation(filePath);
 
+            // For each of the nodes that saved the file, tell them to delete it
             for(ChordNode node : nodes){
                 // Create the message
                 String message = "DELETE " + filePath + " \r\n\r\n";
@@ -316,14 +370,12 @@ public class ChordPeer implements PeerClientInterface{
                 } catch (Exception e) {
                     System.out.println("Node didn't response to delete request. Removing it");
                     ChordPeer.getChordLayer().dealWithNodeFailure(node.getAddress(), node.getPortNumber());
-
-
                 }
 
                 System.out.println("Deleting backup of file " + folder.getFile(filePath).getName() + " from peer " + node.getId());
             }
 
-
+            // Remove the file from the backup files and remove its location
             ChordPeer.getFolder().deleteFileLocations(filePath);
             ChordPeer.getFolder().removeFile(filePath);
             
@@ -346,10 +398,14 @@ public class ChordPeer implements PeerClientInterface{
             int maxSize = Integer.parseInt(size);
             folder.setStorageSize(maxSize);
             System.out.println("New filder Size: " + folder.getStorageSize() + " and i'm using " + folder.getStorageUsed());
+
             // If the storage used is bigger then the total storage of a peer, the peer needs to delete files
             if(folder.getStorageSize() < folder.getStorageUsed()){
+
+                // Iterate over all the saved files
                 Iterator<Map.Entry<String, FileData>> iterator = ChordPeer.getFolder().getStoredFiles().entrySet().iterator();
 
+                // Delete one by one until the space used is less then the total space
                 while(iterator.hasNext()){
                     Map.Entry<String, FileData> entry = iterator.next();
 
